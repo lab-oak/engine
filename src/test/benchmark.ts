@@ -316,7 +316,7 @@ export function regression(gens: Generations, num: number, battles: number, seed
   // Fetch the latest code and do a hard reset back to a common starting point
   // (required to work around any force-pushes)
   sh('git', ['fetch']);
-  const common = sh('git', ['merge-base', 'btest', 'origin/main']).trim();
+  const common = sh('git', ['merge-base', 'btest', 'origin/main']).trim(); // DEBUG
   sh('git', ['reset', '--hard', common]);
 
   const dir = path.join(ROOT, 'benchmark');
@@ -327,12 +327,13 @@ export function regression(gens: Generations, num: number, battles: number, seed
   }
 
   const file = path.join(ROOT, 'benchmark', 'data.tsv');
+  console.debug(file);
   let rows: string[] = [];
-  try {
-    rows = fs.readFileSync(file, 'utf8').trim().split('\n');
-  } catch (err: any) {
-    if (err.code !== 'ENOENT') throw err;
-  }
+  // try {
+  //   rows = fs.readFileSync(file, 'utf8').trim().split('\n');
+  // } catch (err: any) {
+  //   if (err.code !== 'ENOENT') throw err;
+  // }
 
   // If there is an existing data file, walk backwards over it until we find
   // the last row which is still valid to be used as the basis for comparison
@@ -343,13 +344,15 @@ export function regression(gens: Generations, num: number, battles: number, seed
   }
 
   // Reopen the data file for appending
-  const data = fs.createWriteStream(file, {flags: 'a'});
+  const data = fs.createWriteStream(file, {flags: 'a+'});
 
   // Iterate through each commit and attempt to gather benchmark results. We
   // need the steps forward in history to succeed but if the code at a given
   // commit is broken we can continue - we only *need* the last commit to work
   let error = false;
-  for (const commit of sh('git', ['rev-list', 'btest..origin/main']).trim().split('\n').reverse()) {
+  const commits = sh('git', ['rev-list', 'btest..origin/main']).trim().split('\n'); // DEBUG
+  for (const commit of commits.reverse()) {
+    console.debug(commit);
     if (!commit) continue;
     sh('git', ['merge', '--ff-only', commit]);
     try {
@@ -383,7 +386,7 @@ export function regression(gens: Generations, num: number, battles: number, seed
             const stats = Stats.compute(cleaned);
 
             const now = Math.round(stats.avg);
-            const then = last.length ? 0 : last[3 + (+log + +showdown) * 6];
+            const then = last.length ? last[3 + (12 * +log) + (6 * +showdown)] : 0;
             // TODO: we should actually make use of confidence intervals here...
             const compare = last.length ? +((now / +then) < 0.95) : 0;
             compares += compare;
@@ -398,6 +401,7 @@ export function regression(gens: Generations, num: number, battles: number, seed
       error = !!compares;
       if (!last.length) last = row.map(x => x.toString());
 
+      console.debug(row.join('\t') + '\n');
       data.write(row.join('\t') + '\n');
     } catch (err) {
       console.error(err);
@@ -405,9 +409,7 @@ export function regression(gens: Generations, num: number, battles: number, seed
     }
   }
 
-  data.end();
-
-  return +!error;
+  return +error;
 }
 
 export function iterations(
@@ -515,7 +517,7 @@ if (require.main === module) {
     const argv = minimist(process.argv.slice(2), {boolean: ['regression']});
     const seed = argv.seed ? argv.seed.split(',').map((s: string) => Number(s)) : [1, 2, 3, 4];
     if (argv.regression) {
-      process.exit(regression(gens, argv.iterations ?? 50, argv.battles ?? 100_000, seed));
+      process.exit(regression(gens, argv.iterations ?? 5, argv.battles ?? 1000, seed)); // DEBUG
     } else if (argv.iterations) {
       const entries = iterations(gens, argv.iterations, argv.battles ?? 100_000, seed, argv.text);
       if (argv.text) {
