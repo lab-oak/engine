@@ -27,3 +27,4 @@ dist/
 src/examples/c/example
 logs/
 release/
+benchmark/

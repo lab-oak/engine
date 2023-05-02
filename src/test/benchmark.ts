@@ -1,6 +1,7 @@
 import 'source-map-support/register';
 
 import {execFileSync} from 'child_process';
+import * as fs from 'fs';
 import * as path from 'path';
 
 import {Generation, Generations, ID, PokemonSet, StatsTable} from '@pkmn/data';
@@ -279,7 +280,7 @@ const generationName = (format: ID, showdown?: boolean, log?: boolean) => {
   return `${NAMES[+format[3] - 1]}${tags.length ? ` (${tags.join(', ')})` : ''}`;
 };
 
-const compare =
+const verify =
     (name: string, control: {turns: number; seed: string}, turns: number, seed: string) => {
       if (!control.seed) {
         control.turns = turns;
@@ -310,34 +311,103 @@ const clean = (samples: number[], n = 3) => {
 };
 
 export function regression(gens: Generations, num: number, battles: number, seed: number[]) {
-  const row: Array<string | number> = [Math.round(Date.now() / 1000), '7f2014fa2cd6', 1453]; // TODO
-  for (const log of [false, true]) {
-    for (const showdown of [false, true]) {
-      const options = [`-Dshowdown=${showdown.toString()}`, `-Dlog=${log.toString()}`];
-      sh('zig', ['build', '-j1', ...options, 'tools', '-p', 'build']);
-      for (const gen of gens) {
-        if (gen.num > 1) break;
-        patch.generation(gen);
-        const format = formatFor(gen);
+  if (sh('git', ['status', '--porcelain'])) throw new Error('Untracked changes');
 
-        const name = generationName(format, showdown, log);
-        const control = {turns: 0, seed: ''};
-        const samples = new Array(num);
-        for (let i = 0; i < num; i++) {
-          const prng = new PRNG(seed.slice() as PRNGSeed);
-          const [duration, turns, final] = libpkmn(format, prng, battles, showdown);
-          samples[i] = Math.round(1e9 / (Number(duration) / battles));
-          compare(name, control, turns, final);
+  // Fetch the latest code and do a hard reset back to a common starting point
+  // (required to work around any force-pushes)
+  sh('git', ['fetch']);
+  const common = sh('git', ['merge-base', 'btest', 'origin/main']).trim();
+  sh('git', ['reset', '--hard', common]);
+
+  const dir = path.join(ROOT, 'benchmark');
+  try {
+    fs.mkdirSync(dir, {recursive: true});
+  } catch (err: any) {
+    if (err.code !== 'EEXIST') throw err;
+  }
+
+  const file = path.join(ROOT, 'benchmark', 'data.tsv');
+  let rows: string[] = [];
+  try {
+    rows = fs.readFileSync(file, 'utf8').trim().split('\n');
+  } catch (err: any) {
+    if (err.code !== 'ENOENT') throw err;
+  }
+
+  // If there is an existing data file, walk backwards over it until we find
+  // the last row which is still valid to be used as the basis for comparison
+  let last: string[] = [];
+  for (let i = rows.length - 1; !last.length && i >= 0 && rows[i]; i--) {
+    const row = rows[i].split('\t');
+    if (sh('git', ['rev-parse', row[1]])) last = row;
+  }
+
+  // Reopen the data file for appending
+  const data = fs.createWriteStream(file, {flags: 'a'});
+
+  // Iterate through each commit and attempt to gather benchmark results. We
+  // need the steps forward in history to succeed but if the code at a given
+  // commit is broken we can continue - we only *need* the last commit to work
+  let error = false;
+  for (const commit of sh('git', ['rev-list', 'btest..origin/main']).trim().split('\n').reverse()) {
+    if (!commit) continue;
+    sh('git', ['merge', '--ff-only', commit]);
+    try {
+      // package.json may have been updated and we may depend on the new deps
+      sh('npm', ['install']);
+
+      const count = sh('git', ['rev-list', 'HEAD', '--count']).trim();
+      const row: Array<string | number> =
+        [Math.round(Date.now() / 1000), commit.slice(0, 12), count];
+      let compares = 0;
+      for (const log of [false, true]) {
+        for (const showdown of [false, true]) {
+          const options = [`-Dshowdown=${showdown.toString()}`, `-Dlog=${log.toString()}`];
+          sh('zig', ['build', '-j1', ...options, 'tools', '-p', 'build']);
+          for (const gen of gens) {
+            if (gen.num > 1) break;
+            patch.generation(gen);
+            const format = formatFor(gen);
+
+            const name = generationName(format, showdown, log);
+            const control = {turns: 0, seed: ''};
+            const samples = new Array(num);
+            for (let i = 0; i < num; i++) {
+              const prng = new PRNG(seed.slice() as PRNGSeed);
+              const [duration, turns, final] = libpkmn(format, prng, battles, showdown);
+              samples[i] = Math.round(1e9 / (Number(duration) / battles));
+              verify(name, control, turns, final);
+            }
+
+            const [cleaned, outliers] = clean(samples);
+            const stats = Stats.compute(cleaned);
+
+            const now = Math.round(stats.avg);
+            const then = last.length ? 0 : last[3 + (+log + +showdown) * 6];
+            // TODO: we should actually make use of confidence intervals here...
+            const compare = last.length ? +((now / +then) < 0.95) : 0;
+            compares += compare;
+
+            row.push(now, stats.min, stats.max);
+            row.push(stats.rme, outliers.sort().join(','), compare);
+          }
         }
-
-        const [cleaned, outliers] = clean(samples);
-        const stats = Stats.compute(cleaned);
-        row.push(Math.round(stats.avg), stats.min, stats.max);
-        row.push(stats.rme, outliers.sort().join(','));
       }
+      // We only care if the last attempt was successful - possibly some commits
+      // in the middle may have been broken but we don't care.
+      error = !!compares;
+      if (!last.length) last = row.map(x => x.toString());
+
+      data.write(row.join('\t') + '\n');
+    } catch (err) {
+      console.error(err);
+      error = true;
     }
   }
-  console.log(row.join('\t'));
+
+  data.end();
+
+  return +!error;
 }
 
 export function iterations(
@@ -365,7 +435,7 @@ export function iterations(
           const prng = new PRNG(seed.slice() as PRNGSeed);
           const [duration, turns, final] = libpkmn(format, prng, battles, showdown);
           samples[i] = Math.round(1e9 / (Number(duration) / battles));
-          compare(name, control, turns, final);
+          verify(name, control, turns, final);
         }
 
         const [cleaned, outliers] = clean(samples);
@@ -417,7 +487,7 @@ export async function comparison(gens: Generations, battles: number, seed: numbe
 
       const prng = new PRNG(seed.slice() as PRNGSeed);
       const [duration, turns, final] = await code.run(gen, format, prng, battles);
-      compare(config, control, turns, final);
+      verify(config, control, turns, final);
       stats[name][config] = duration;
     }
   }
@@ -445,7 +515,7 @@ if (require.main === module) {
     const argv = minimist(process.argv.slice(2), {boolean: ['regression']});
     const seed = argv.seed ? argv.seed.split(',').map((s: string) => Number(s)) : [1, 2, 3, 4];
     if (argv.regression) {
-      regression(gens, argv.iterations ?? 50, argv.battles ?? 100_000, seed);
+      process.exit(regression(gens, argv.iterations ?? 50, argv.battles ?? 100_000, seed));
     } else if (argv.iterations) {
       const entries = iterations(gens, argv.iterations, argv.battles ?? 100_000, seed, argv.text);
       if (argv.text) {
