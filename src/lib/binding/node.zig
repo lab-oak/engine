@@ -10,14 +10,14 @@ const c = @cImport({
 
 export fn napi_register_module_v1(env: c.napi_env, exports: c.napi_value) c.napi_value {
     const properties = [_]c.napi_property_descriptor{
-        Property.init("options", .{ .value = options(env) }),
+        Property.init("options", .{ .value = flags(env) }),
         Property.init("bindings", .{ .value = bindings(env) }),
     };
     assert(c.napi_define_properties(env, exports, properties.len, &properties) == c.napi_ok);
     return exports;
 }
 
-fn options(env: c.napi_env) c.napi_value {
+fn flags(env: c.napi_env) c.napi_value {
     var object = Object.init(env);
     const properties = [_]c.napi_property_descriptor{
         Property.init("showdown", .{ .value = Boolean.init(env, pkmn.options.showdown) }),
@@ -42,11 +42,174 @@ fn bind(env: c.napi_env, gen: anytype) c.napi_value {
     const properties = [_]c.napi_property_descriptor{
         Property.init("CHOICES_SIZE", .{ .value = Number.init(env, choices_size) }),
         Property.init("LOGS_SIZE", .{ .value = Number.init(env, logs_size) }),
+        Property.init("options", .{ .method = options(gen) }),
         Property.init("update", .{ .method = update(gen) }),
         Property.init("choices", .{ .method = choices(gen) }),
     };
     assert(c.napi_define_properties(env, object, properties.len, &properties) == c.napi_ok);
     return object;
+}
+
+fn options(gen: anytype) c.napi_callback {
+    return struct {
+        fn call(env: c.napi_env, info: c.napi_callback_info) callconv(.C) c.napi_value {
+            var argc: usize = 3;
+            var argv: [3]c.napi_value = undefined;
+            assert(c.napi_get_cb_info(env, info, &argc, &argv, null, null) == c.napi_ok);
+            assert(argc == 3);
+
+            if (pkmn.options.log or pkmn.options.chance or pkmn.options.calc) {
+                const log = Boolean.get(env, argv[0]);
+                const chance = Boolean.get(env, argv[1]);
+                const calc = Boolean.get(env, argv[2]);
+
+                if (pkmn.options.log and log) {
+
+                    // FIXME create array buffer for data...
+                    var buf = @ptrCast([*]u8, data.?)[0..gen.LOGS_SIZE];
+                    // FIXME who holds onto this??
+                    var stream = pkmn.protocol.ByteStream{ .buffer = buf };
+
+                    if (pkmn.options.chance and chance) {
+                        if (pkmn.options.calc and calc) {
+                            return instantiate(env, pkmn.battle.Options(
+                                pkmn.protocol.FixedLog,
+                                gen.Chance(pkmn.Rational(f64)),
+                                gen.Calc,
+                            ){
+                                .log = TODO,
+                                .chance = .{ .probability = .{} },
+                                .calc = .{},
+                            });
+                        }
+                        return instantiate(env, pkmn.battle.Options(
+                            pkmn.protocol.FixedLog,
+                            gen.Chance(pkmn.Rational(f64)),
+                            @TypeOf(gen.calc.NULL),
+                        ){
+                            .log = TODO,
+                            .chance = .{ .probability = .{} },
+                            .calc = gen.calc.NULL,
+                        });
+                    }
+                    if (pkmn.options.calc and calc) {
+                        return instantiate(env, pkmn.battle.Options(
+                            pkmn.protocol.FixedLog,
+                            @TypeOf(gen.chance.NULL),
+                            gen.Calc,
+                        ){
+                            .log = TODO,
+                            .chance = gen.chance.NULL,
+                            .calc = .{},
+                        });
+                    }
+                    return instantiate(env, pkmn.battle.Options(
+                        pkmn.protocol.FixedLog,
+                        @TypeOf(gen.chance.NULL),
+                        @TypeOf(gen.calc.NULL),
+                    ){
+                        .log = TODO,
+                        .chance = gen.chance.NULL,
+                        .calc = gen.calc.NULL,
+                    });
+                }
+                if (pkmn.options.chance and chance) {
+                    if (pkmn.options.calc and calc) {
+                        return instantiate(env, pkmn.battle.Options(
+                            @TypeOf(pkmn.protocol.NULL),
+                            gen.Chance(pkmn.Rational(f64)),
+                            gen.Calc,
+                        ){
+                            .log = pkmn.protocol.NULL,
+                            .chance = .{ .probability = .{} },
+                            .calc = .{},
+                        });
+                    }
+                    return instantiate(env, pkmn.battle.Options(
+                        @TypeOf(pkmn.protocol.NULL),
+                        gen.Chance(pkmn.Rational(f64)),
+                        @TypeOf(gen.calc.NULL),
+                    ){
+                        .log = pkmn.protocol.NULL,
+                        .chance = .{ .probability = .{} },
+                        .calc = gen.calc.NULL,
+                    });
+                }
+                if (pkmn.options.calc and calc) {
+                    return instantiate(env, pkmn.battle.Options(
+                        @TypeOf(pkmn.protocol.NULL),
+                        @TypeOf(gen.chance.NULL),
+                        gen.Calc,
+                    ){
+                        .log = pkmn.protocol.NULL,
+                        .chance = gen.chance.NULL,
+                        .calc = .{},
+                    });
+                }
+                return instantiate(gen.NULL);
+            }
+        }
+    }.call;
+}
+
+inline fn instantiate(env: c.napi_env, opts: anytype) void {
+    var buf: c.napi_value = undefined;
+    var bytes: [*]anyopaque = undefined;
+    assert(c.napi_create_arraybuffer(env, @sizeOf(@TypeOf(opts)), &bytes, &buf) == c.napi_ok);
+
+    var data: c.napi_value = undefined;
+    assert(c.napi_create_dataview(env, 0, @sizeOf(@TypeOf(opts)), buf, 0, &data) == c.napi_ok);
+
+    var T = @TypeOf(opts).log;
+    var log: c.napi_value = undefined;
+    assert(c.napi_create_dataview(env, @sizeOf(T), buf, @offsetOf(T), &log) == c.napi_ok);
+
+    var chance = Object.init(env);
+    {
+        T = @TypeOf(opts).calc.probability;
+        var p: c.napi_value = undefined;
+        assert(c.napi_create_dataview(env, @sizeOf(T), buf, @offsetOf(T), &p) == c.napi_ok);
+
+        T = @TypeOf(opts).calc.actions;
+        var actions: c.napi_value = undefined;
+        assert(c.napi_create_dataview(env, @sizeOf(T), buf, @offsetOf(T), &actions) == c.napi_ok);
+
+        const properties = [_]c.napi_property_descriptor{
+            Property.init("probability", .{ .value = p }),
+            Property.init("actions", .{ .value = actions }),
+        };
+        assert(c.napi_define_properties(env, chance, properties.len, &properties) == c.napi_ok);
+    }
+
+    var calc = Object.init(env);
+    {
+        T = @TypeOf(opts).calc.summaries;
+        var sums: c.napi_value = undefined;
+        assert(c.napi_create_dataview(env, @sizeOf(T), buf, @offsetOf(T), &sums) == c.napi_ok);
+
+        T = @TypeOf(opts).calc.overrides;
+        var overrides: c.napi_value = undefined;
+        assert(c.napi_create_dataview(env, @sizeOf(T), buf, @offsetOf(T), &overrides) == c.napi_ok);
+
+        const properties = [_]c.napi_property_descriptor{
+            Property.init("summaries", .{ .value = sums }),
+            Property.init("overrides", .{ .value = overrides }),
+        };
+        assert(c.napi_define_properties(env, calc, properties.len, &properties) == c.napi_ok);
+    }
+
+    var result = Object.init(env);
+    {
+        const properties = [_]c.napi_property_descriptor{
+            Property.init("data", .{ .value = data }),
+            Property.init("log", .{ .value = log }),
+            Property.init("chance", .{ .value = chance }),
+            Property.init("calc", .{ .value = calc }),
+        };
+        assert(c.napi_define_properties(env, result, properties.len, &properties) == c.napi_ok);
+    }
+
+    return result;
 }
 
 fn update(gen: anytype) c.napi_callback {
@@ -89,7 +252,10 @@ fn update(gen: anytype) c.napi_callback {
                         .chance = gen.chance.NULL,
                         .calc = gen.calc.NULL,
                     };
+                    // FIXME chance.reset
                     break :result battle.update(c1, c2, &opts);
+                    // FIXME if log stream.reset()...
+                    // FIXME chance.reduce
                 },
             } catch unreachable;
 
@@ -148,6 +314,12 @@ const Boolean = struct {
     fn init(env: c.napi_env, value: bool) c.napi_value {
         var result: c.napi_value = undefined;
         assert(c.napi_get_boolean(env, value, &result) == c.napi_ok);
+        return result;
+    }
+
+    fn get(env: c.napi_env, value: c.napi_value) bool {
+        var result: bool = undefined;
+        assert(napi_get_value_bool(env, value, &result) == c.napi_ok);
         return result;
     }
 };

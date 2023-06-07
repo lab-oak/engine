@@ -7,13 +7,21 @@ const ROOT = path.join(__dirname, '..', '..');
 let ADDON: [Bindings<false>?, Bindings<true>?] | undefined = undefined;
 
 interface Bindings<T extends boolean> {
-  options: { showdown: T; log: boolean };
+  options: { showdown: T; log?: boolean; chance?: boolean; calc?: boolean};
   bindings: Binding[];
+}
+
+interface Options {
+  data: DataView;
+  log: DataView;
+  chance: {probability: DataView; actions: DataView};
+  calc: {summaries: DataView; overrides: DataView};
 }
 
 interface Binding {
   CHOICES_SIZE: number;
   LOGS_SIZE: number;
+  options(log: boolean, chance: boolean, calc: boolean): Options;
   update(battle: ArrayBuffer, c1: number, c2: number, log: ArrayBuffer | undefined): number;
   choices(battle: ArrayBuffer, player: number, request: number, options: ArrayBuffer): number;
 }
@@ -51,16 +59,24 @@ export function supports(showdown: boolean, log?: boolean) {
   return ADDON![+showdown]!.options.log === log;
 }
 
+export function options(
+  index: number,
+  showdown: boolean,
+  build: {log?: boolean; chance?: boolean; calc?: boolean}
+) {
+  return ADDON![+showdown]!.bindings[index].options(!!build.log, !!build.chance, !!build.calc);
+}
+
 export function update(
   index: number,
   showdown: boolean,
   battle: ArrayBuffer,
   c1?: Choice,
   c2?: Choice,
-  options?: ArrayBuffer,
+  cs?: ArrayBuffer,
 ) {
   return Result.decode(ADDON![+showdown]!.bindings[index]
-    .update(battle, Choice.encode(c1), Choice.encode(c2), options));
+    .update(battle, Choice.encode(c1), Choice.encode(c2), cs));
 }
 
 export function choices(
@@ -90,10 +106,10 @@ export function choices(
   // but thats ultimately not worth the effort. You can't have both a high-level
   // idiomatic API and performance here, hence why the choose function below
   // exists.
-  const options = new Array<Choice>(n);
+  const cs = new Array<Choice>(n);
   const data = new Uint8Array(buf);
-  for (let i = 0; i < n; i++) options[i] = Choice.decode(data[i]);
-  return options;
+  for (let i = 0; i < n; i++) cs[i] = Choice.decode(data[i]);
+  return cs;
 }
 
 export function choose(

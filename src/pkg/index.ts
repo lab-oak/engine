@@ -262,8 +262,8 @@ export type CreateOptions = {
    */
   showdown?: boolean;
   // TODO
-  // chance?: boolean;
-  // calc?: boolean;
+  chance?: boolean;
+  calc?: boolean;
 } & ({
   /** Player 1's options. */
   p1: PlayerOptions;
@@ -291,8 +291,8 @@ export type CreateOptions = {
 /** Options for restoring a battle via Battle.restore. */
 export type RestoreOptions = {
   // TODO
-  // chance?: boolean;
-  // calc?: boolean;
+  chance?: boolean;
+  calc?: boolean;
 } &({
   /** Player 1's options. */
   p1: PlayerOptions;

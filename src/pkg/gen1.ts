@@ -773,7 +773,7 @@ export class Options {
   readonly data: DataView;
 
   constructor(gen: Generation, lookup: Lookup, options: CreateOptions | RestoreOptions) {
-    const {data, log, chance, calc} = addons.options(0, options);
+    const {data, log, chance, calc} = addon.options(0, !!options.showdown, options);
 
     this.showdown = !!options.showdown;
     this.data = data;
