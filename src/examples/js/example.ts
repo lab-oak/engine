@@ -74,7 +74,6 @@ const battle = Battle.create(gen, {
   p2: {name: 'Player B', team: P2},
   seed: [1, 2, 3, 4],
   showdown: true,
-  log: true,
 });
 
 const random = new Random();

@@ -250,50 +250,16 @@ export namespace Gen1 {
 }
 
 /** Options for creating a battle via Battle.create. */
-export type CreateOptions = {
+export interface CreateOptions extends RestoreOptions {
   /**
    * The seed for the Battle's RNG - the expected format of this value depends
    * on the generation of the Battle being created.
    */
   seed: number[];
-  /**
-   * Whether or not create a Pokémon Showdown compatible battle or not (requires
-   * that the engine be built in a specific compatibility mode).
-   */
-  showdown?: boolean;
-  // TODO
-  chance?: boolean;
-  calc?: boolean;
-} & ({
-  /** Player 1's options. */
-  p1: PlayerOptions;
-  /** Player 2's options. */
-  p2: PlayerOptions;
-  /**
-   * Whether to capture protocol message logs. Note that if the engine itself
-   * was not build with protocol logging enabled then enabling this will have no
-   * effect.
-   */
-  log: true;
-} | {
-  /** Player 1's options. */
-  p1: Omit<PlayerOptions, 'name'>;
-  /** Player 2's options. */
-  p2: Omit<PlayerOptions, 'name'>;
-  /**
-   * Whether to capture protocol message logs. Note that if the engine itself
-   * was not build with protocol logging enabled then enabling this will have no
-   * effect.
-   */
-  log?: false;
-});
+}
 
 /** Options for restoring a battle via Battle.restore. */
-export type RestoreOptions = {
-  // TODO
-  chance?: boolean;
-  calc?: boolean;
-} &({
+export interface RestoreOptions {
   /** Player 1's options. */
   p1: PlayerOptions;
   /** Player 2's options. */
@@ -303,30 +269,12 @@ export type RestoreOptions = {
    * that the engine be built in a specific compatibility mode).
    */
   showdown?: boolean;
-  /**
-   * Whether to capture protocol message logs. Note that if the engine itself
-   * was not build with protocol logging enabled then enabling this will have no
-   * effect.
-   */
-  log: true;
-} | {
-  /**
-   * Whether or not create a Pokémon Showdown compatible battle or not (requires
-   * that the engine be built in a specific compatibility mode).
-   */
-  showdown?: boolean;
-  /**
-   * Whether to capture protocol message logs. Note that if the engine itself
-   * was not build with protocol logging enabled then enabling this will have no
-   * effect.
-   */
-  log?: false;
-});
+}
 
 /** Options about a particular player. */
 export interface PlayerOptions {
   /** The player's name. */
-  name: string;
+  name?: string;
   /** The player's team. */
   team: Partial<PokemonSet>[];
 }

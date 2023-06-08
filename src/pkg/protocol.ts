@@ -1,6 +1,7 @@
 import {BoostID, GenderName, Generation, ID, StatusName, TypeName} from '@pkmn/data';
 import {Protocol} from '@pkmn/protocol';
 
+import * as addon from './addon';
 import {LE, Lookup, PROTOCOL} from './data';
 
 import {PlayerOptions} from '.';
@@ -37,7 +38,7 @@ export class Info {
  */
 export class SideInfo {
   /** The side's player's name. */
-  name: string;
+  name?: string;
   /** Information for the side's Pokémon. */
   team: PokemonInfo[];
 
@@ -95,7 +96,7 @@ export class Log {
    * Decode engine's binary protocol `data` and convert it to lines of Pokémon
    * Showdown's text protocol.
    */
-  *[Symbol.iterator](): Iterator<ParsedLine> {
+  *[Symbol.iterator](): Iterable<ParsedLine> {
     let lines: ParsedLine[] = [];
     let i = 0;
     for (; i < this.data.byteLength;) {
@@ -245,8 +246,8 @@ DECODERS[ArgType.Turn] = function (offset, data) {
 };
 DECODERS[ArgType.Win] = function (offset, data) {
   const player = data.getUint8(offset++) ? 'p2' : 'p1';
-  const args =
-    ['win', this.info[player].name as Protocol.Username] as Protocol.Args['|win|'];
+  const name = this.info[player].name ?? (player === 'p1' ? 'Player A' : 'Player B');
+  const args = ['win', name as Protocol.Username] as Protocol.Args['|win|'];
   return {offset, line: {args, kwArgs: {}}};
 };
 DECODERS[ArgType.Tie] = function (offset) {

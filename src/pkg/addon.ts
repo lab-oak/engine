@@ -21,7 +21,7 @@ interface Options {
 interface Binding {
   CHOICES_SIZE: number;
   LOGS_SIZE: number;
-  options(log: boolean, chance: boolean, calc: boolean): Options;
+  options(): Options;
   update(battle: ArrayBuffer, c1: number, c2: number, log: ArrayBuffer | undefined): number;
   choices(battle: ArrayBuffer, player: number, request: number, options: ArrayBuffer): number;
 }
@@ -59,12 +59,8 @@ export function supports(showdown: boolean, log?: boolean) {
   return ADDON![+showdown]!.options.log === log;
 }
 
-export function options(
-  index: number,
-  showdown: boolean,
-  build: {log?: boolean; chance?: boolean; calc?: boolean}
-) {
-  return ADDON![+showdown]!.bindings[index].options(!!build.log, !!build.chance, !!build.calc);
+export function options(index: number, showdown: boolean) {
+  return ADDON![+showdown]!.bindings[index].options();
 }
 
 export function update(

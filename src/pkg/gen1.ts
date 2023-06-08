@@ -38,7 +38,7 @@ export class Battle implements Gen1.Battle {
     data: DataView,
     options: CreateOptions | RestoreOptions,
   ) {
-    this.options = new Options(gen, lookup, options);
+    this.options = new Options(gen, lookup, options); // FIXME should prolong across all instances? but cant be used concurrently...
 
     this.lookup = lookup;
     this.data = data;
@@ -772,12 +772,12 @@ export class Options {
 
   readonly data: DataView;
 
-  constructor(gen: Generation, lookup: Lookup, options: CreateOptions | RestoreOptions) {
-    const {data, log, chance, calc} = addon.options(0, !!options.showdown, options);
+  constructor(gen: Generation, lookup: Lookup, options: RestoreOptions) {
+    const {data, log, chance, calc} = addon.options(0, !!options.showdown);
 
     this.showdown = !!options.showdown;
     this.data = data;
-    this.log = new Log(gen, options.log ? options : undefined!, log, lookup);
+    this.log = new Log(gen, options, log, lookup);
     this.chance = new Chance(lookup, chance);
     this.calc = new Calc(lookup, calc);
   }
@@ -787,8 +787,8 @@ export class Chance implements Gen1.Chance {
   probability: Rational;
   actions: Actions;
 
-  constructor(lookup: Lookup, data: {rational: DataView; actions: DataView}) {
-    this.probability = new Rational(data.rational);
+  constructor(lookup: Lookup, data: {probability: DataView; actions: DataView}) {
+    this.probability = new Rational(data.probability);
     this.actions = new Actions(lookup, data.actions);
   }
 }
