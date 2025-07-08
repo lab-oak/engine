@@ -547,6 +547,9 @@ fn tool(b: *std.Build, path: []const u8, config: ToolConfig) !?*Step.Run {
     if (root_module) {
         const import = if (config.module) |m| m else module(b, config.options);
         exe.root_module.addImport("pkmn", import);
+        if (detect(config.general.target).os.tag == .windows) {
+            exe.root_module.linkSystemLibrary("advapi32", .{});
+        }
     } else {
         exe.addModule("pkmn", module(b, config.options));
     }
