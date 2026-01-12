@@ -12,24 +12,24 @@ const POSITIONS = ['a', 'b', 'c', 'd', 'e', 'f'];
 const STATS = ['hp', 'atk', 'def', 'spa', 'spd', 'spe'] as const;
 const DISPLAY = {hp: 'HP', atk: 'Atk', def: 'Def', spa: 'SpA', spd: 'SpD', spe: 'Spe', spc: 'Spc'};
 const VOLATILES: {[id in keyof engine.Pokemon['volatiles']]: [string, 'good' | 'bad' | 'neutral']} =
-{
-  bide: ['Bide', 'good'],
-  thrashing: ['Thrashing', 'neutral'],
-  flinch: ['Flinch', 'bad'],
-  charging: ['Charging', 'good'],
-  binding: ['Binding', 'bad'],
-  invulnerable: ['Invulnerable', 'good'],
-  confusion: ['Confusion', 'bad'],
-  mist: ['Mist', 'good'],
-  focusenergy: ['Focus Energy', 'good'],
-  substitute: ['Substitute', 'good'],
-  recharging: ['Recharging', 'bad'],
-  rage: ['Rage', 'neutral'],
-  leechseed: ['Leech Seed', 'bad'],
-  lightscreen: ['Light Screen', 'good'],
-  reflect: ['Reflect', 'good'],
-  transform: ['Transformed', 'neutral'],
-};
+  {
+    bide: ['Bide', 'good'],
+    thrashing: ['Thrashing', 'neutral'],
+    flinch: ['Flinch', 'bad'],
+    charging: ['Charging', 'good'],
+    binding: ['Binding', 'bad'],
+    invulnerable: ['Invulnerable', 'good'],
+    confusion: ['Confusion', 'bad'],
+    mist: ['Mist', 'good'],
+    focusenergy: ['Focus Energy', 'good'],
+    substitute: ['Substitute', 'good'],
+    recharging: ['Recharging', 'bad'],
+    rage: ['Rage', 'neutral'],
+    leechseed: ['Leech Seed', 'bad'],
+    lightscreen: ['Light Screen', 'good'],
+    reflect: ['Reflect', 'good'],
+    transform: ['Transformed', 'neutral'],
+  };
 
 export interface Generation {
   num: pkmn.GenerationNum;
@@ -291,7 +291,7 @@ const HPBar = ({pokemon, last}: {
 }) => {
   const {percent, color, style} = getHP(pokemon);
   let bar = <div className={`hp ${color}`} style={style}></div>;
-  if (last && last.position === pokemon.position && pokemon.hp < last.hp) {
+  if (last?.position === pokemon.position && pokemon.hp < last.hp) {
     const prev = getHP(last);
     bar = <div className={`prevhp ${prev.color ? 'prev' + prev.color : ''}`} style={prev.style}>
       {bar}

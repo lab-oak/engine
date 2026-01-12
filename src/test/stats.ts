@@ -277,7 +277,7 @@ export const regression = (
 
   console.log();
   for (const name in before) {
-    if (!after[name] || before[name].length !== after[name].length) {
+    if (before[name].length !== after[name]?.length) {
       throw new Error(`Can't compare two incompatible samples for '${name}'`);
     }
 

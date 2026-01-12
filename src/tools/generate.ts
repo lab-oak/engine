@@ -19,18 +19,18 @@ const TEMPLATES = path.join(ROOT, 'src', 'lib', 'common', 'data');
 const CACHE = path.join(ROOT, '.cache');
 
 const IDS: IDs =
-[{
-  types: [
-    'Normal', 'Fighting', 'Flying', 'Poison', 'Ground', 'Rock', 'Bug', 'Ghost',
-    'Fire', 'Water', 'Grass', 'Electric', 'Psychic', 'Ice', 'Dragon',
-  ] as Exclude<TypeName, 'Dark' | 'Steel' | 'Fairy' | 'Stellar'>[],
-}, {
-  types: [
-    'Ground', 'Rock', 'Steel', 'Normal', 'Fighting', 'Flying', 'Poison', 'Bug', 'Ghost',
-    '???', 'Fire', 'Water', 'Grass', 'Electric', 'Psychic', 'Ice', 'Dragon', 'Dark',
-  ] as Exclude<TypeName, 'Fairy' | 'Stellar'>[],
-  items: [],
-}];
+  [{
+    types: [
+      'Normal', 'Fighting', 'Flying', 'Poison', 'Ground', 'Rock', 'Bug', 'Ghost',
+      'Fire', 'Water', 'Grass', 'Electric', 'Psychic', 'Ice', 'Dragon',
+    ] as Exclude<TypeName, 'Dark' | 'Steel' | 'Fairy' | 'Stellar'>[],
+  }, {
+    types: [
+      'Ground', 'Rock', 'Steel', 'Normal', 'Fighting', 'Flying', 'Poison', 'Bug', 'Ghost',
+      '???', 'Fire', 'Water', 'Grass', 'Electric', 'Psychic', 'Ice', 'Dragon', 'Dark',
+    ] as Exclude<TypeName, 'Fairy' | 'Stellar'>[],
+    items: [],
+  }];
 const DATA: [{
   types: TypeName[];
   species: {
@@ -1054,7 +1054,7 @@ const GEN: {[gen in GenerationNum]?: GenerateFn} = {
     }
 
     const precedenceFn =
-    `/// The precedence order of Type \`t1\` vs. Type \`t2\`.
+      `/// The precedence order of Type \`t1\` vs. Type \`t2\`.
     pub fn precedence(t1: Type, t2: Type) u8 {
         for (PRECEDENCE, 0..) |matchup, i| {
             if (matchup.type1 == t1 and matchup.type2 == t2) return @intCast(i);
@@ -1111,7 +1111,7 @@ const GEN: {[gen in GenerationNum]?: GenerateFn} = {
     }
 
     const precedenceFn =
-    `/// The precedence order of Type \`t1\` vs. Type \`t2\`.
+      `/// The precedence order of Type \`t1\` vs. Type \`t2\`.
     pub fn precedence(t1: Type, t2: Type) u8 {
         // The Ice vs. Fire matchup is out of order - return a higher
         // number than anything else so that it sorts last correctly

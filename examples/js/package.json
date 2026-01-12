@@ -1,16 +1,16 @@
 {
   "dependencies": {
-    "@pkmn/data": "^0.9.35",
-    "@pkmn/dex": "^0.9.35",
+    "@pkmn/data": "^0.10.5",
+    "@pkmn/dex": "^0.10.5",
     "@pkmn/engine": "file:../..",
-    "@pkmn/sets": "^5.1.2"
+    "@pkmn/sets": "^5.2.0"
   },
   "devDependencies": {
     "parcel-reporter-static-files-copy": "^1.5.3",
-    "parcel": "^2.15.4",
+    "parcel": "^2.16.3",
     "vite-plugin-commonjs": "^0.10.4",
-    "vite": "^7.0.0",
-    "typescript": "^5.8.3"
+    "vite": "^7.3.1",
+    "typescript": "^5.9.3"
   },
   "scripts": {
     "prestart": "tsc -p .",

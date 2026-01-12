@@ -500,8 +500,8 @@ function compare(chunk: string, actual: engine.ParsedLine[]) {
     if (FILTER.has(args[0])) continue;
     if (i > actual.length) throw new Error(`Actual logs are missing messages: ${diff}`);
     if (actual[i].args[0] === '-status' && actual[i].args[2] === 'psn' &&
-      (actual[i].kwArgs as Protocol.KWArgs['|-status|']).silent && actual[i + 1] &&
-      actual[i + 1].args[0] === 'switch') {
+      (actual[i].kwArgs as Protocol.KWArgs['|-status|']).silent &&
+        actual[i + 1]?.args[0] === 'switch') {
       [actual[i], actual[i + 1]] = [actual[i + 1], actual[i]];
     }
     const a = args.slice() as Writeable<Protocol.ArgType>;
@@ -532,8 +532,8 @@ function compare(chunk: string, actual: engine.ParsedLine[]) {
       // on the switched *out* Pokémon's speed and the ``|-status|` message is
       // based off of the switched *in* Pokémon's speed.
       if (actual[i].args[0] === '-status' && actual[i].args[2] === 'psn' &&
-      (actual[i].kwArgs as Protocol.KWArgs['|-status|']).silent && actual[i + 1] &&
-      actual[i + 1].args[0] === '-status') {
+      (actual[i].kwArgs as Protocol.KWArgs['|-status|']).silent &&
+        actual[i + 1]?.args[0] === '-status') {
         [actual[i], actual[i + 1]] = [actual[i + 1], actual[i]];
         assert.deepEqual(actual[i], {args: a, kwArgs: kw});
       } else {
