@@ -72,11 +72,10 @@ pub fn build(b: *std.Build) !void {
     var repository = std.mem.splitSequence(u8, parsed.value.object.get("repository").?.string, ":");
     std.debug.assert(std.mem.eql(u8, repository.first(), "github"));
 
-    const fast = try std.SemanticVersion.parse("0.12.0-dev.866+3a47bc715");
     const patched = std.mem.endsWith(u8, builtin.zig_version_string, "patched");
-    if (optimize != .Debug and fast.order(builtin.zig_version) == .lt and !patched) {
+    if (optimize != .Debug and !patched) {
         std.log.warn("Release builds are ~10-20% slower than before Zig " ++
-            "v0.12.0-dev.866+3a47bc715 due to ziglang/zig#17768", .{});
+            "v0.12.0-dev.866+3a47bc715 due to ziglang/zig#17768, consider patching", .{});
     }
 
     const showdown =
