@@ -74,7 +74,7 @@ pub fn prng(rand: *PSRNG) data.PRNG {
                 var carry: u8 = 0;
                 var div: u8 = 0;
 
-                var i: u8 = 0;
+                var i: usize = 0;
                 while (i < seed.len) {
                     div = @intCast(timer >> 8);
                     // This is effectively @addWithOverflow but with three operands

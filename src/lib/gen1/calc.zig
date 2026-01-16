@@ -280,8 +280,8 @@ pub fn transitions(
 
             var p2_dmg = Rolls.damage(f.p2, p2_hit);
 
-            const p1_min: u9 = p1_dmg.min;
-            const p2_min: u9 = p2_dmg.min;
+            const p1_min: u9 = @intCast(p1_dmg.min);
+            const p2_min: u9 = @intCast(p2_dmg.min);
 
             while (p2_dmg.min < p2_dmg.max) : (p2_dmg.min += 1) {
                 a.p2.damage = @intCast(p2_dmg.min);
@@ -298,7 +298,7 @@ pub fn transitions(
 
                 const summaries = &opts.calc.summaries;
                 const p1_max: u9 = if (p2_dmg.min != p2_min)
-                    p1_dmg.min
+                    @intCast(p1_dmg.min)
                 else
                     Rolls.coalesce(.P1, @as(u8, @intCast(p1_dmg.min)), summaries, cap);
                 const p2_max: u9 =
@@ -740,7 +740,7 @@ pub const Rolls = struct {
     }
 
     /// The min and max bounds on iteration over damage rolls.
-    pub const Range = struct { min: u9, max: u9 };
+    pub const Range = struct { min: usize, max: usize };
 
     /// Returns the range bounding damage rolls given the `action` state and the state of
     /// the `parent` (whether the player's Pokémon's move hit).

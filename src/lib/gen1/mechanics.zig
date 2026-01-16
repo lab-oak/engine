@@ -1019,7 +1019,7 @@ fn doMove(
     const sub = showdown and foe.active.volatiles.Substitute;
 
     var nullified = false;
-    var hit: u4 = 0;
+    var hit: usize = 0;
     while (hit < hits) {
         if (hit == 0) {
             if (crit) try log.crit(.{battle.active(player.foe())});
@@ -1047,7 +1047,7 @@ fn doMove(
         if (showdown and move.effect == .Twineedle and !nullified and foe.stored().hp > 0) {
             try Effects.poison(battle, player, Move.get(.PoisonSting), options);
         }
-        try log.hitcount(.{ battle.active(player.foe()), hit });
+        try log.hitcount(.{ battle.active(player.foe()), @as(u4, @intCast(hit)) });
     } else if (showdown and move.effect == .Binding) {
         // This should be handled much earlier but Pokémon Showdown does it here... ¯\_(ツ)_/¯
         try Effects.binding(battle, player, rewrap, options);
@@ -3145,11 +3145,11 @@ pub fn choices(battle: anytype, player: Player, request: Choice.Type, out: []Cho
         },
         .Switch => {
             const side = battle.side(player);
-            var slot: u4 = 2;
+            var slot: usize = 2;
             while (slot <= 6) : (slot += 1) {
                 const id = side.order[slot - 1];
                 if (id == 0 or side.pokemon[id - 1].hp == 0) continue;
-                out[n] = .{ .type = .Switch, .data = slot };
+                out[n] = .{ .type = .Switch, .data = @intCast(slot) };
                 n += 1;
             }
             if (n == 0) {
@@ -3180,11 +3180,11 @@ pub fn choices(battle: anytype, player: Player, request: Choice.Type, out: []Cho
                 return n;
             }
 
-            var slot: u4 = 2;
+            var slot: usize = 2;
             while (slot <= 6) : (slot += 1) {
                 const id = side.order[slot - 1];
                 if (id == 0 or side.pokemon[id - 1].hp == 0) continue;
-                out[n] = .{ .type = .Switch, .data = slot };
+                out[n] = .{ .type = .Switch, .data = @intCast(slot) };
                 n += 1;
             }
 
@@ -3217,7 +3217,7 @@ pub fn choices(battle: anytype, player: Player, request: Choice.Type, out: []Cho
                         const struggle =
                             m.id == .Bide and (m.pp == 0 or active.volatiles.disable_move == slot);
                         const s = if (struggle) 0 else slot;
-                        out[n] = .{ .type = .Move, .data = s };
+                        out[n] = .{ .type = .Move, .data = @intCast(s) };
                         n += 1;
                         return n;
                     }
@@ -3231,7 +3231,7 @@ pub fn choices(battle: anytype, player: Player, request: Choice.Type, out: []Cho
                 if (m.id == .None) break;
                 if (m.pp == 0) continue;
                 if (active.volatiles.disable_move == slot) continue;
-                out[n] = .{ .type = .Move, .data = slot };
+                out[n] = .{ .type = .Move, .data = @intCast(slot) };
                 n += 1;
             }
             // Struggle (Pokémon Showdown would use 'move 1' here)
