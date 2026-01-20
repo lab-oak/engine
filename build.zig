@@ -1,6 +1,10 @@
 const builtin = @import("builtin");
 const std = @import("std");
 
+fn ArrayList(comptime T: type) type {
+    return std.array_list.Aligned(T, null);
+}
+
 pub const Options = struct {
     showdown: ?bool = null,
     log: ?bool = null,
@@ -30,7 +34,7 @@ pub fn build(b: *std.Build) !void {
     const node_headers = b.option([]const u8, "node-headers", "Path to node-headers");
     const node_import_lib =
         b.option([]const u8, "node-import-library", "Path to node import library (Windows)");
-    const demo = if (try exists("src/tools/demo.zig"))
+    const demo = if (try exists(b, "src/tools/demo.zig"))
         b.option(bool, "demo", "Build the demo library") orelse false
     else
         false;
@@ -102,21 +106,25 @@ pub fn build(b: *std.Build) !void {
         translate_c.addSystemIncludePath(b.path(headers));
         const addon = b.fmt("{s}.node", .{name});
         const path = b.path("src/lib/node.zig");
-        const lib = b.addSharedLibrary(.{
+        const lib = b.addLibrary(.{
+            .linkage = .dynamic,
             .name = addon,
-            .root_source_file = path,
-            .optimize = optimize,
-            .target = target,
-            .strip = strip,
-            .pic = pic,
+            .root_module = b.createModule(.{
+                .root_source_file = path,
+                .optimize = optimize,
+                .target = target,
+                .strip = strip,
+                .pic = pic,
+            }),
         });
         lib.root_module.addOptions("build_options", options);
         lib.root_module.addImport("napi", translate_c.createModule());
-        lib.linkLibC();
+        lib.root_module.link_libc = true;
         if (node_import_lib) |il| {
-            lib.addObjectFile(b.path(il));
-        } else if (detect(target).os.tag == .windows) {
-            try std.io.getStdErr().writeAll("Must provide --node-import-library path on Windows\n");
+            lib.root_module.addObjectFile(b.path(il));
+        } else if (target.result.os.tag == .windows) {
+            var err = std.Io.File.stderr().writer(b.graph.io, &.{});
+            try err.interface.writeAll("Must provide --node-import-library path on Windows\n");
             std.process.exit(1);
         }
         lib.linker_allow_shlib_undefined = true;
@@ -140,32 +148,37 @@ pub fn build(b: *std.Build) !void {
         try buildWasm(b, n, path, optimize, strip, pic, wasm_stack_size, mod, options);
     } else if (dynamic) {
         const path = b.path("src/lib/c.zig");
-        const lib = b.addSharedLibrary(.{
+        const lib = b.addLibrary(.{
+            .linkage = .dynamic,
             .name = name,
-            .root_source_file = path,
-            .version = try std.SemanticVersion.parse(version),
-            .optimize = optimize,
-            .target = target,
-            .strip = strip,
-            .pic = pic,
+            .root_module = b.createModule(.{
+                .root_source_file = path,
+                .optimize = optimize,
+                .target = target,
+                .strip = strip,
+                .pic = pic,
+            }),
         });
         lib.root_module.addOptions("build_options", options);
-        lib.addIncludePath(b.path("src/include"));
+        lib.root_module.addIncludePath(b.path("src/include"));
         maybeStrip(b, lib, b.getInstallStep(), strip, cmd);
         b.installArtifact(lib);
         c = true;
     } else {
         const path = b.path("src/lib/c.zig");
-        const lib = b.addStaticLibrary(.{
+        const lib = b.addLibrary(.{
+            .linkage = .static,
             .name = name,
-            .root_source_file = path,
-            .optimize = optimize,
-            .target = target,
-            .strip = strip,
-            .pic = pic,
+            .root_module = b.createModule(.{
+                .root_source_file = path,
+                .optimize = optimize,
+                .target = target,
+                .strip = strip,
+                .pic = pic,
+            }),
         });
         lib.root_module.addOptions("build_options", options);
-        lib.addIncludePath(b.path("src/include"));
+        lib.root_module.addIncludePath(b.path("src/include"));
         lib.bundle_compiler_rt = true;
         maybeStrip(b, lib, b.getInstallStep(), strip, cmd);
         if (emit_asm) {
@@ -192,16 +205,20 @@ pub fn build(b: *std.Build) !void {
         b.getInstallStep().dependOn(&header.step);
 
         const pc = b.fmt("lib{s}.pc", .{name});
-        const file = try std.fs.path.relative(
+        const cwd = try std.process.getCwdAlloc(b.allocator);
+        const file = try std.Io.Dir.path.relative(
             b.allocator,
             try std.process.getCwdAlloc(b.allocator),
+            &b.graph.environ_map,
+            cwd,
             try b.cache_root.join(b.allocator, &.{pc}),
         );
-        const pkgconfig_file = try std.fs.cwd().createFile(file, .{});
+        const pkgconfig_file = try std.Io.Dir.cwd().createFile(b.graph.io, file, .{});
+        defer pkgconfig_file.close(b.graph.io);
 
         const dirname = comptime std.fs.path.dirname(@src().file) orelse ".";
-        const writer = pkgconfig_file.writer();
-        try writer.print(
+        var writer = pkgconfig_file.writer(b.graph.io, &.{});
+        try writer.interface.print(
             \\prefix={0s}/{1s}
             \\includedir=${{prefix}}/include
             \\libdir=${{prefix}}/lib
@@ -213,7 +230,6 @@ pub fn build(b: *std.Build) !void {
             \\Cflags: -I${{includedir}}
             \\Libs: -L${{libdir}} -l{2s}
         , .{ dirname, b.install_path, name, repository.next().?, description, version });
-        defer pkgconfig_file.close();
 
         b.installFile(file, b.fmt("share/pkgconfig/{s}", .{pc}));
     }
@@ -229,7 +245,7 @@ pub fn build(b: *std.Build) !void {
     // TODO: tests can be run multiple times due to @imports
     const tests = TestStep.create(b, options, config);
 
-    var exes = std.ArrayList(*std.Build.Step.Compile).init(b.allocator);
+    var exes: ArrayList(*std.Build.Step.Compile) = .empty;
     const tools: ToolConfig = .{
         .options = .{
             .showdown = showdown,
@@ -318,16 +334,19 @@ fn buildWasm(
     const path = b.path(root_src_file);
     const exe = b.addExecutable(.{
         .name = name,
-        .root_source_file = path,
-        .optimize = mode,
-        .target = freestanding,
-        .strip = strip,
-        .pic = pic,
+        .root_module = b.createModule(.{
+            .root_source_file = path,
+            .optimize = mode,
+            .target = freestanding,
+            .strip = strip,
+            .pic = pic,
+        }),
     });
 
-    var file = try std.fs.cwd().openFile(root_src_file, .{});
-    defer file.close();
-    const bytes = try file.readToEndAlloc(b.allocator, std.math.maxInt(usize));
+    var file = try std.Io.Dir.cwd().openFile(b.graph.io, root_src_file, .{});
+    defer file.close(b.graph.io);
+    var reader = file.reader(b.graph.io, &.{});
+    const bytes = try reader.interface.allocRemaining(b.allocator, .unlimited);
     exe.root_module.export_symbol_names = try exports(b, bytes);
     exe.entry = .disabled;
 
@@ -393,13 +412,15 @@ const TestStep = struct {
 
         const path = b.path("src/lib/test.zig");
         const tests = b.addTest(.{
-            .root_source_file = path,
-            .optimize = config.optimize,
-            .target = config.target,
-            .filter = test_filter,
-            .single_threaded = true,
-            .strip = config.strip,
-            .pic = config.pic,
+            .root_module = b.createModule(.{
+                .root_source_file = path,
+                .optimize = config.optimize,
+                .target = config.target,
+                .single_threaded = true,
+                .strip = config.strip,
+                .pic = config.pic,
+            }),
+            .filters = if (test_filter) |filter| &.{filter} else &.{},
         });
         tests.root_module.addOptions("build_options", options);
 
@@ -420,12 +441,12 @@ const ToolConfig = struct {
     tool: struct {
         tests: ?*TestStep,
         name: ?[]const u8 = null,
-        exes: *std.ArrayList(*std.Build.Step.Compile),
+        exes: *ArrayList(*std.Build.Step.Compile),
     },
 };
 
 fn tool(b: *std.Build, path: []const u8, config: ToolConfig) !?*std.Build.Step.Run {
-    if (!try exists(path)) return null;
+    if (!try exists(b, path)) return null;
     var name = config.tool.name orelse std.fs.path.basename(path);
     const index = std.mem.lastIndexOfScalar(u8, name, '.');
     if (index) |i| name = name[0..i];
@@ -433,22 +454,23 @@ fn tool(b: *std.Build, path: []const u8, config: ToolConfig) !?*std.Build.Step.R
 
     const exe = b.addExecutable(.{
         .name = name,
-        .root_source_file = b.path(path),
-        .target = config.general.target,
-        .optimize = config.general.optimize,
-        .single_threaded = true,
-        .strip = config.general.strip,
-        .pic = config.general.pic,
+        .root_module = b.createModule(.{
+            .root_source_file = b.path(path),
+            .target = config.general.target,
+            .optimize = config.general.optimize,
+            .strip = config.general.strip,
+            .pic = config.general.pic,
+        }),
     });
 
     const import = if (config.module) |m| m else module(b, config.options);
     exe.root_module.addImport("pkmn", import);
-    if (detect(config.general.target).os.tag == .windows) {
+    if (config.general.target.result.os.tag == .windows) {
         exe.root_module.linkSystemLibrary("advapi32", .{});
     }
 
     if (config.tool.tests) |ts| ts.step.dependOn(&exe.step);
-    config.tool.exes.append(exe) catch @panic("OOM");
+    config.tool.exes.append(b.allocator, exe) catch @panic("OOM");
 
     const run = b.addRunArtifact(exe);
     maybeStrip(b, exe, &run.step, config.general.strip, config.general.cmd);
@@ -457,8 +479,8 @@ fn tool(b: *std.Build, path: []const u8, config: ToolConfig) !?*std.Build.Step.R
     return run;
 }
 
-fn exists(path: []const u8) !bool {
-    std.fs.cwd().access(path, .{}) catch |err| switch (err) {
+fn exists(b: *std.Build, path: []const u8) !bool {
+    std.Io.Dir.cwd().access(b.graph.io, path, .{}) catch |err| switch (err) {
         error.FileNotFound => return false,
         else => |e| return e,
     };
@@ -468,7 +490,7 @@ fn exists(path: []const u8) !bool {
 const ToolsStep = struct {
     step: std.Build.Step,
 
-    pub fn create(b: *std.Build, exes: *std.ArrayList(*std.Build.Step.Compile)) *ToolsStep {
+    pub fn create(b: *std.Build, exes: *ArrayList(*std.Build.Step.Compile)) *ToolsStep {
         const self = b.allocator.create(ToolsStep) catch @panic("OOM");
         const step = std.Build.Step.init(.{ .id = .custom, .name = "Install tools", .owner = b });
         self.* = .{ .step = step };
@@ -477,23 +499,18 @@ const ToolsStep = struct {
     }
 };
 
-fn detect(target: anytype) std.Target {
-    return target.result;
-    // return (std.zig.system.NativeTargetInfo.detect(target) catch unreachable).target;
-}
-
 pub fn exports(b: *std.Build, bytes: []const u8) ![][]const u8 {
-    var symbols = std.ArrayList([]const u8).init(b.allocator);
+    var symbols: ArrayList([]const u8) = .empty;
 
     var it = std.mem.splitSequence(u8, bytes, "export ");
     _ = it.next();
     while (it.next()) |s| {
         if (std.mem.startsWith(u8, s, "const ")) {
             const i = std.mem.indexOf(u8, s[6..], " ").?;
-            try symbols.append(s[6 .. 6 + i]);
+            try symbols.append(b.allocator, s[6 .. 6 + i]);
         } else { // "fn "
             const i = std.mem.indexOf(u8, s[3..], "(").?;
-            try symbols.append(s[3 .. 3 + i]);
+            try symbols.append(b.allocator, s[3 .. 3 + i]);
         }
     }
 
