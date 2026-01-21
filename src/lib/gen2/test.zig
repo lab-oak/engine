@@ -12,7 +12,6 @@ const rng = @import("../common/rng.zig");
 const std = @import("std");
 
 const ArgType = protocol.ArgType;
-const ArrayList = std.ArrayList;
 const assert = std.debug.assert;
 const Battle = helpers.Battle;
 const ByteStream = protocol.ByteStream;
@@ -1405,13 +1404,13 @@ fn Test(comptime rolls: anytype) type {
             expected: data.Battle(rng.FixedRNG(2, rolls.len)),
             actual: data.Battle(rng.FixedRNG(2, rolls.len)),
         },
-        buf: struct {
-            expected: ArrayList(u8),
-            actual: ArrayList(u8),
+        writer: struct {
+            expected: std.Io.Writer.Allocating,
+            actual: std.Io.Writer.Allocating,
         },
         log: struct {
-            expected: Log(ArrayList(u8).Writer),
-            actual: Log(ArrayList(u8).Writer),
+            expected: Log(*std.Io.Writer, anyerror),
+            actual: Log(*std.Io.Writer, anyerror),
         },
 
         expected: struct {
@@ -1423,7 +1422,7 @@ fn Test(comptime rolls: anytype) type {
             p2: *data.Side,
         },
 
-        options: pkmn.battle.Options(Log(ArrayList(u8).Writer), Chance(Rational(u64)), Calc),
+        options: pkmn.battle.Options(Log(*std.Io.Writer, anyerror), Chance(Rational(u64)), Calc),
         offset: usize,
 
         pub fn init(pokemon1: []const Pokemon, pokemon2: []const Pokemon) *Self {
@@ -1431,10 +1430,10 @@ fn Test(comptime rolls: anytype) type {
 
             t.battle.expected = Battle.fixed(rolls, pokemon1, pokemon2);
             t.battle.actual = t.battle.expected;
-            t.buf.expected = std.ArrayList(u8).init(std.testing.allocator);
-            t.buf.actual = std.ArrayList(u8).init(std.testing.allocator);
-            t.log.expected = .{ .writer = t.buf.expected.writer() };
-            t.log.actual = .{ .writer = t.buf.actual.writer() };
+            t.writer.expected = std.Io.Writer.Allocating.init(std.testing.allocator);
+            t.writer.actual = std.Io.Writer.Allocating.init(std.testing.allocator);
+            t.log.expected = .{ .writer = &t.writer.expected.writer };
+            t.log.actual = .{ .writer = &t.writer.actual.writer };
 
             t.expected.p1 = t.battle.expected.side(.P1);
             t.expected.p2 = t.battle.expected.side(.P2);
@@ -1448,8 +1447,8 @@ fn Test(comptime rolls: anytype) type {
         }
 
         pub fn deinit(self: *Self) void {
-            self.buf.expected.deinit();
-            self.buf.actual.deinit();
+            self.writer.expected.deinit();
+            self.writer.actual.deinit();
             std.testing.allocator.destroy(self);
         }
 
@@ -1506,11 +1505,11 @@ fn Test(comptime rolls: anytype) type {
             if (log) {
                 try protocol.expectLog(
                     data,
-                    self.buf.expected.items,
-                    self.buf.actual.items,
+                    self.writer.expected.written(),
+                    self.writer.actual.written(),
                     self.offset,
                 );
-                self.offset = self.buf.expected.items.len;
+                self.offset = self.writer.expected.written().len;
             }
             for (self.expected.p1.pokemon, 0..) |p, i| {
                 try expectEqual(p.hp, self.actual.p1.pokemon[i].hp);

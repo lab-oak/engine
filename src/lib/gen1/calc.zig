@@ -195,8 +195,8 @@ pub fn transitions(
 
     var seen = std.AutoHashMap(Actions, void).init(allocator);
     defer seen.deinit();
-    var frontier = std.ArrayList(Actions).init(allocator);
-    defer frontier.deinit();
+    var frontier: std.array_list.Aligned(Actions, null) = .empty;
+    defer frontier.deinit(allocator);
 
     const d = options.durations;
 
@@ -214,7 +214,7 @@ pub fn transitions(
     const p2 = b.side(.P2);
 
     var p: Rational(u256) = .{ .p = 0, .q = 1 };
-    try frontier.append(opts.chance.actions);
+    try frontier.append(allocator, opts.chance.actions);
 
     // zig fmt: off
     for (Rolls.metronome(frontier.items[0].p1)) |p1_move| {
@@ -331,7 +331,7 @@ pub fn transitions(
                             acts.p1.damage = @intCast(p1d);
                             acts.p2.damage = @intCast(p2d);
                             if ((try seen.getOrPut(acts)).found_existing) {
-                                err("already seen {}", .{acts}, options.seed);
+                                // err("already seen {}", .{acts}, options.seed);
                                 return error.TestUnexpectedResult;
                             }
                         }
@@ -348,12 +348,12 @@ pub fn transitions(
                     stats.saved += 1;
 
                     if (p.q < p.p) {
-                        err("improper fraction {}", .{p}, options.seed);
+                        // err("improper fraction {}", .{p}, options.seed);
                         return error.TestUnexpectedResult;
                     }
                 } else {
                     if (!opts.chance.actions.matchesAny(frontier.items, i)) {
-                        try frontier.append(opts.chance.actions);
+                        try frontier.append(allocator, opts.chance.actions);
 
                         try debug(writer, opts.chance.actions, .{
                             .p1_max = p1_max,
@@ -408,7 +408,7 @@ pub fn transitions(
 
     p.reduce();
     if (p.p != 1 or p.q != 1) {
-        err("expected 1, found {}", .{p}, options.seed);
+        // err("expected 1, found {}", .{p}, options.seed);
         return error.TestExpectedEqual;
     }
 
@@ -503,8 +503,7 @@ fn expectEqualActions(expected: Actions, actual: Actions) !void {
         error.TestExpectedEqual => {
             std.debug.print("expected {}, found {}\n", .{ expected, actual });
             return e;
-        },
-        else => return e,
+        }
     };
 }
 
@@ -523,12 +522,13 @@ fn unfix(actual: anytype) data.Battle(data.PRNG) {
     };
 }
 
-fn err(comptime fmt: []const u8, v: anytype, seed: ?u64) void {
-    const w = std.io.getStdErr().writer();
-    w.print(fmt, v) catch return;
-    if (seed) |s| return w.print("{}\n", .{s}) catch return;
-    return w.writeByte('\n') catch return;
-}
+// XXX
+// fn err(comptime fmt: []const u8, v: anytype, seed: ?u64) void {
+//     const w = std.io.getStdErr().writer();
+//     w.print(fmt, v) catch return;
+//     if (seed) |s| return w.print("{}\n", .{s}) catch return;
+//     return w.writeByte('\n') catch return;
+// }
 
 const Style = struct {
     shape: bool = false,
@@ -571,9 +571,9 @@ fn format(writer: anytype, actions: Actions, p1: u9, p2: u9) !void {
     var input: [1024]u8 = undefined;
     var output: [1024]u8 = undefined;
 
-    var stream = std.io.fixedBufferStream(&input);
-    try actions.fmt(&stream.writer(), false);
-    var len = stream.getWritten().len;
+    var w = std.Io.Writer.fixed(&input);
+    try actions.fmt(&w, false);
+    var len = w.buffered().len;
     @memcpy(output[0..len], input[0..len]);
 
     var find: [16]u8 = undefined;
@@ -646,7 +646,7 @@ pub const Rolls = struct {
         };
     }
 
-    /// FIXME
+    /// FIXME document
     pub fn attacking(
         action: Action,
         duration: Duration,
@@ -672,7 +672,7 @@ pub const Rolls = struct {
     const CFZ = [_]Optional(Confusion){ .continuing, .ended };
     const CFZ_TIE = [_]Optional(Confusion){ .started, .continuing, .ended };
 
-    /// FIXME
+    /// FIXME document
     pub fn confusion(
         action: Action,
         duration: Duration,

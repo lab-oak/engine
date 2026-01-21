@@ -47,7 +47,7 @@ pub fn main(init: std.process.Init) !void {
         },
     );
 
-    // FIXME pkmn.protocol.Log(std.io.FixedBufferStream([]u8).Writer)
+    // XXX pkmn.protocol.Log(std.io.FixedBufferStream([]u8).Writer)
     // Preallocate a buffer for the log and create a `Log` handler which will write to it.
     // `pkmn.LOGS_SIZE` is guaranteed to be large enough for a single update. This will only be
     // written to if `-Dlog` is enabled - `pkmn.protocol.NULL` can be used to turn all of the

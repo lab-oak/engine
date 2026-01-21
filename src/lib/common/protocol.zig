@@ -311,16 +311,16 @@ pub const Weather = enum(u8) {
 
 /// Null object pattern implementation of `Log` backed by a null writer. Ignores anything sent to
 /// it, though protocol logging should additionally be turned off entirely with `options.log`.
-pub const NULL = Log(NullWriter){ .writer = .{} };
+pub const NULL = Log(NullWriter, NullWriter.Error){ .writer = .{} };
 
-/// Logs protocol information to its `Writer` during a battle update when `options.log` is enabled.
-pub fn Log(comptime Writer: type) type {
+/// Logs protocol information to its `Writer` during a battle update when `options.log` is enabled. XXX
+pub fn Log(comptime Writer: type, Err: anytype) type {
     return struct {
         const Self = @This();
 
         writer: Writer,
 
-        pub const Error = Writer.Error;
+        pub const Error = Err;
 
         // source: ID, move: <Move>, target: ID, from?: <Move>
         pub fn move(self: Self, args: anytype) Error!void {
@@ -812,8 +812,9 @@ pub fn Log(comptime Writer: type) type {
 }
 
 /// `Log` type backed by the optimized `ByteStream.Writer`.
-pub const FixedLog = Log(ByteStream.Writer);
+pub const FixedLog = Log(ByteStream.Writer, ByteStream.Writer.Error);
 
+// XXX: just pull out writer
 /// Minimal logging helper optimized for efficiently writing the individual protocol bytes into a
 /// fixed buffer. Note that the `ByteStream.Writer` is **not** a `std.Io.Writer` and should not be
 /// used for general purpose writing.
@@ -1219,12 +1220,14 @@ pub fn expectLog(
 ) !void {
     if (!enabled) return;
 
-    const color = if (std.process.hasEnvVarConstant("ZIG_DEBUG_COLOR"))
-        true
-    else switch (std.io.tty.detectConfig(std.io.getStdErr())) {
-        .escape_codes => true,
-        else => false,
-    };
+    // XXX
+    // const color = if (std.process.hasEnvVarConstant("ZIG_DEBUG_COLOR"))
+    //     true
+    // else switch (std.io.tty.detectConfig(std.io.getStdErr())) {
+    //     .escape_codes => true,
+    //     else => false,
+    // };
+    const color = true;
 
     expectEqualBytes(expected, actual, offset) catch |err| switch (err) {
         error.TestExpectedEqual => {
@@ -1232,7 +1235,6 @@ pub fn expectLog(
             format(gen, actual, expected, color);
             return err;
         },
-        else => return err,
     };
 }
 
