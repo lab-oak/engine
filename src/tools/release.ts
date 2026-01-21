@@ -47,7 +47,7 @@ const TARGETS = [
 let version: string = sh('zig', ['version'], {bypass: true}).trim();
 if (!version.endsWith('.patched')) {
   // TODO: ziglang/zig#17768
-  console.error('Releases must be build with a patched compiler for performance.');
+  console.error('Releases must be built with a patched compiler for performance.');
   process.exit(1);
 }
 

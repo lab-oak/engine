@@ -23,7 +23,7 @@ pub const MAX_LOGS = pkmn.MAX_LOGS;
 pub const LOGS_SIZE = pkmn.LOGS_SIZE;
 
 pub fn choice_init(choice: u8, data: u8) callconv(.c) u8 {
-    assert(choice <= @field(@typeInfo(pkmn.Choice.Type), @tagName(.@"enum")).fields.len);
+    assert(choice <= @typeInfo(pkmn.Choice.Type).@"enum".fields.len);
     assert(data <= 6);
     return @bitCast(pkmn.Choice{ .type = @enumFromInt(choice), .data = @intCast(data) });
 }
@@ -190,8 +190,8 @@ pub fn gen(comptime num: comptime_int) type {
             out: [*]u8,
             n: usize,
         ) callconv(.c) u8 {
-            assert(player <= @field(@typeInfo(pkmn.Player), @tagName(.@"enum")).fields.len);
-            assert(request <= @field(@typeInfo(pkmn.Choice.Type), @tagName(.@"enum")).fields.len);
+            assert(player <= @typeInfo(pkmn.Player).@"enum".fields.len);
+            assert(request <= @typeInfo(pkmn.Choice.Type).@"enum".fields.len);
 
             assert(!pkmn.options.showdown or n > 0);
             return battle.choices(@enumFromInt(player), @enumFromInt(request), @ptrCast(out[0..n]));

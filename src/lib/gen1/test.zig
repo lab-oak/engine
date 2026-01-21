@@ -6864,7 +6864,6 @@ test "Hyper Beam + Substitute bug" {
     try t.verify();
 }
 
-//                 .{ HIT, 1 } ++ @as([30]U, @splat(.{ ~CRIT, HIT }),
 test "Mimic infinite PP bug" {
     // Mimic first
     {

@@ -4,7 +4,7 @@ const expect = std.testing.expect;
 const expectEqual = std.testing.expectEqual;
 
 pub fn PointerType(comptime P: type, comptime C: type) type {
-    return if (@field(@typeInfo(P), @tagName(.pointer)).is_const) *const C else *C;
+    return if (@typeInfo(P).pointer.is_const) *const C else *C;
 }
 
 test PointerType {
@@ -15,7 +15,7 @@ test PointerType {
 pub fn isPointerTo(p: anytype, comptime P: type) bool {
     const info = @typeInfo(@TypeOf(p));
     return switch (info) {
-        .pointer => @field(info, @tagName(.pointer)).child == P,
+        .pointer => info.pointer.child == P,
         else => false,
     };
 }

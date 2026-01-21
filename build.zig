@@ -42,8 +42,8 @@ pub fn build(b: *std.Build) !void {
     const wasm_stack_size =
         b.option(u64, "wasm-stack-size", "The size of WASM stack") orelse std.wasm.page_size;
     const dynamic = b.option(bool, "dynamic", "Build a dynamic library") orelse false;
-    const strip = b.option(bool, "strip", "Strip debugging symbols from binary") orelse null;
-    const pic = b.option(bool, "pic", "Force position independent code") orelse null;
+    const strip = b.option(bool, "strip", "Strip debugging symbols from binary");
+    const pic = b.option(bool, "pic", "Force position independent code");
     const emit_asm = b.option(bool, "emit-asm", "Output .s (assembly code)") orelse false;
     const emit_ll = b.option(bool, "emit-ll", "Output .ll (LLVM IR)") orelse false;
 
