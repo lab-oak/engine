@@ -424,7 +424,7 @@ Equivalent to `|-damage|` (preceding), but the Pokémon has healed damage instea
       +---------------+
 
 The Pokémon identified by [`Ident`](#pokemonident) has been inflicted with `Status`. If `Reason` is
-`0x01` then the next byte indicates which `Move` the `Status` is `[from]`.
+`0x02` then the next byte indicates which `Move` the `Status` is `[from]`.
 
 <details><summary>Reason</summary>
 
