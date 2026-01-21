@@ -311,16 +311,31 @@ pub const Weather = enum(u8) {
 
 /// Null object pattern implementation of `Log` backed by a null writer. Ignores anything sent to
 /// it, though protocol logging should additionally be turned off entirely with `options.log`.
-pub const NULL = Log(NullWriter, NullWriter.Error){ .writer = .{} };
+pub const NULL = Log(NullWriter){ .writer = .{} };
 
-/// Logs protocol information to its `Writer` during a battle update when `options.log` is enabled. XXX
-pub fn Log(comptime Writer: type, Err: anytype) type {
+/// Logs protocol information to its `WriterT` during a battle update when `options.log` is enabled.
+pub fn Log(comptime WriterT: type) type {
     return struct {
         const Self = @This();
 
-        writer: Writer,
+        writer: WriterT,
 
-        pub const Error = Err;
+        pub const Error = err(WriterT);
+
+        fn err(comptime T: type) type {
+            const msg = "Invalid Writer type " ++ @typeName(T) ++ "'";
+            return switch (@typeInfo(T)) {
+                .pointer => |ptr_info| switch (ptr_info.size) {
+                    .one => switch (@typeInfo(ptr_info.child)) {
+                        .@"struct" => err(ptr_info.child),
+                        else => @compileError(msg),
+                    },
+                    else => @compileError(msg),
+                },
+                .@"struct" => if (@hasDecl(T, "Error")) T.Error else @compileError(msg),
+                else => @compileError(msg),
+            };
+        }
 
         // source: ID, move: <Move>, target: ID, from?: <Move>
         pub fn move(self: Self, args: anytype) Error!void {
@@ -812,7 +827,7 @@ pub fn Log(comptime Writer: type, Err: anytype) type {
 }
 
 /// `Log` type backed by the optimized `ByteStream.Writer`.
-pub const FixedLog = Log(ByteStream.Writer, ByteStream.Writer.Error);
+pub const FixedLog = Log(ByteStream.Writer);
 
 // XXX: just pull out writer
 /// Minimal logging helper optimized for efficiently writing the individual protocol bytes into a

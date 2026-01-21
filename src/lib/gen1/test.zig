@@ -10424,8 +10424,8 @@ fn Test(comptime rolls: anytype) type {
             actual: std.Io.Writer.Allocating,
         },
         log: struct {
-            expected: Log(*std.Io.Writer, anyerror),
-            actual: Log(*std.Io.Writer, anyerror),
+            expected: Log(*std.Io.Writer),
+            actual: Log(*std.Io.Writer),
         },
 
         expected: struct {
@@ -10437,7 +10437,7 @@ fn Test(comptime rolls: anytype) type {
             p2: *data.Side,
         },
 
-        options: pkmn.battle.Options(Log(*std.Io.Writer, anyerror), Chance(Rational(u128)), Calc),
+        options: pkmn.battle.Options(Log(*std.Io.Writer), Chance(Rational(u128)), Calc),
         offset: usize,
 
         pub fn init(pokemon1: []const Pokemon, pokemon2: []const Pokemon) *Self {

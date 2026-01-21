@@ -47,14 +47,13 @@ pub fn main(init: std.process.Init) !void {
         },
     );
 
-    // XXX pkmn.protocol.Log(std.io.FixedBufferStream([]u8).Writer)
     // Preallocate a buffer for the log and create a `Log` handler which will write to it.
     // `pkmn.LOGS_SIZE` is guaranteed to be large enough for a single update. This will only be
     // written to if `-Dlog` is enabled - `pkmn.protocol.NULL` can be used to turn all of the
     // logging into no-ops. Here we are using the optimized `pkmn.protocol.ByteStream` which should
-    // be more efficient than `pkmn.protocol.Log(std.io.FixedBufferStream([]u8).Writer)`, though
-    // that or a `Log` backed by some other `std.Io.Writer` would also work. This example doesn't
-    // demonstrate how to use `-Dchance` or `-Dcalc` so we just pass the no-op implementations here
+    // be more efficient than `pkmn.protocol.Log(std.Io.Writer.fixed([]u8))`, though that or a `Log`
+    // backed by some other `std.Io.Writer` would also work. This example doesn't demonstrate how to
+    // use `-Dchance` or `-Dcalc` so we just pass the no-op implementations here
     var buf: [pkmn.LOGS_SIZE]u8 = undefined;
     var stream = pkmn.protocol.ByteStream{ .buffer = &buf };
     var options = pkmn.battle.options(
@@ -72,7 +71,7 @@ pub fn main(init: std.process.Init) !void {
         // _ = buf;
 
         // `battle.choices` determines what the possible choices are - the simplest way to
-        // choose an option here is to just use the system PRNG to pick one at random.
+        // choose an option here is to just use the system PRNG to pick one at random
         //
         // Technically due to Generation I's Transform + Mirror Move/Metronome PP error if the
         // battle contains Pokémon with a combination of Transform, Mirror Move/Metronome, and

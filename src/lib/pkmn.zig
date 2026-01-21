@@ -32,7 +32,7 @@ pub const PSRNG = @import("common/rng.zig").PSRNG;
 
 /// Namespace for helpers related to protocol message logging.
 pub const protocol = if (options.internal) @import("common/protocol.zig") else struct {
-    /// Logs protocol information to its `Writer` during a battle update when
+    /// Logs protocol information to its `WriterT` during a battle update when
     /// `options.log` is enabled.
     pub const Log = @import("common/protocol.zig").Log;
     /// Minimal logging helper optimized for efficiently writing the individual
