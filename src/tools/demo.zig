@@ -70,8 +70,8 @@ const gen1 = struct {
         cap: bool,
         seen: *std.AutoArrayHashMap(Actions, Rational(u128)),
     ) !void {
-        var frontier = std.ArrayList(Actions).init(allocator);
-        defer frontier.deinit();
+        var frontier: std.array_list.Aligned(Actions, null) = .empty;
+        defer frontier.deinit(allocator);
 
         var opts = pkmn.battle.options(
             protocol.NULL,
@@ -85,7 +85,7 @@ const gen1 = struct {
         const p1 = b.side(.P1);
         const p2 = b.side(.P2);
 
-        try frontier.append(opts.chance.actions);
+        try frontier.append(allocator, opts.chance.actions);
 
         // zig fmt: off
         var i: usize = 0;
@@ -104,8 +104,8 @@ const gen1 = struct {
             for (Rolls.disable(f.p2, d.p2, p2_slp)) |p2_dis| { a.p2.disable = p2_dis;
             for (Rolls.attacking(f.p1, d.p1, p1_slp)) |p1_atk| { a.p1.attacking = p1_atk;
             for (Rolls.attacking(f.p2, d.p2, p2_slp)) |p2_atk| { a.p2.attacking = p2_atk;
-            for (Rolls.confusion(f.p1, d.p1, p1_atk, p1_slp)) |p1_cfz| { a.p1.confusion = p1_cfz;
-            for (Rolls.confusion(f.p2, d.p2, p2_atk, p2_slp)) |p2_cfz| { a.p2.confusion = p2_cfz;
+            for (Rolls.confusion(f.p1, d.p1, tie, p1_atk, p1_slp)) |p1_cfz| { a.p1.confusion = p1_cfz;
+            for (Rolls.confusion(f.p2, d.p2, tie, p2_atk, p2_slp)) |p2_cfz| { a.p2.confusion = p2_cfz;
             for (Rolls.confused(f.p1, p1_cfz)) |p1_cfzd| { a.p1.confused = p1_cfzd;
             for (Rolls.confused(f.p2, p2_cfz)) |p2_cfzd| { a.p2.confused = p2_cfzd;
             for (Rolls.paralyzed(f.p1, p1_cfzd)) |p1_par| { a.p1.paralyzed = p1_par;
@@ -172,7 +172,7 @@ const gen1 = struct {
                             }
                         }
                     } else if (!opts.chance.actions.matchesAny(frontier.items, i)) {
-                        try frontier.append(opts.chance.actions);
+                        try frontier.append(allocator, opts.chance.actions);
                     }
 
                     p1_dmg.min = p1_max;
@@ -232,7 +232,7 @@ export fn GEN1_transitions(
     var i: usize = 0;
     while (it.next()) |kv| {
         results[i] = .{ .actions = kv.key_ptr.*, .probability = kv.value_ptr.* };
-        std.log.debug("{s} = {s}", .{ results[i].actions, results[i].probability });
+        std.log.debug("{f} = {f}", .{ results[i].actions, results[i].probability });
         i += 1;
     }
     return Slice(gen1.Result).init(results);
