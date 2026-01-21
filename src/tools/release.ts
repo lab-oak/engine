@@ -6,7 +6,6 @@ import * as os from 'os';
 import * as path from 'path';
 
 import minimist from 'minimist';
-import semver from 'semver';
 
 const ROOT = path.resolve(__dirname, '..', '..');
 
@@ -46,9 +45,9 @@ const TARGETS = [
 ];
 
 let version: string = sh('zig', ['version'], {bypass: true}).trim();
-if (semver.gt(version, '0.12.0-dev.866+3a47bc715') && !version.endsWith('.patched')) {
+if (!version.endsWith('.patched')) {
   // TODO: ziglang/zig#17768
-  console.error('Releases must only be built with a Zig compiler before v0.12.0-dev.866+3a47bc715');
+  console.error('Releases must be build with a patched compiler for performance.');
   process.exit(1);
 }
 
