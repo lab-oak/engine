@@ -10,9 +10,11 @@ pub fn build(b: *std.Build) void {
 
     const exe = b.addExecutable(.{
         .name = "example",
-        .root_source_file = b.path("example.zig"),
-        .optimize = optimize,
-        .target = target,
+        .root_module = b.createModule(.{
+            .root_source_file = b.path("example.zig"),
+            .optimize = optimize,
+            .target = target,
+        }),
     });
     const pkmn = b.dependency("pkmn", .{ .showdown = showdown, .log = log });
     exe.root_module.addImport("pkmn", pkmn.module("pkmn"));

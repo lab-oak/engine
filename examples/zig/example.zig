@@ -1,25 +1,21 @@
 const std = @import("std");
 const pkmn = @import("pkmn");
 
-pub fn main() !void {
+pub fn main(init: std.process.Init) !void {
     // Set up required to be able to parse command line arguments
-    var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
-    defer arena.deinit();
-    const allocator = arena.allocator();
-
-    const args = try std.process.argsAlloc(allocator);
-    defer std.process.argsFree(allocator, args);
+    const allocator = init.arena.allocator();
+    const args = try init.minimal.args.toSlice(allocator);
 
     // Expect that we have been given a decimal seed as our only argument
-    const err = std.io.getStdErr().writer();
+    var err = std.Io.File.stderr().writer(init.io, &.{});
     if (args.len != 2) {
-        try err.print("Usage: {s} <seed>\n", .{args[0]});
+        try err.interface.print("Usage: {s} <seed>\n", .{args[0]});
         std.process.exit(1);
     }
 
     const seed = std.fmt.parseUnsigned(u64, args[1], 10) catch {
-        try err.print("Invalid seed: {s}\n", .{args[1]});
-        try err.print("Usage: {s} <seed>\n", .{args[0]});
+        try err.interface.print("Invalid seed: {s}\n", .{args[1]});
+        try err.interface.print("Usage: {s} <seed>\n", .{args[0]});
         std.process.exit(1);
     };
 
@@ -75,8 +71,8 @@ pub fn main() !void {
         // Here we would do something with the log data in buf if `-Dlog` were enabled
         // _ = buf;
 
-        // `battle.choices` determines what the possible choices are - the simplest way to choose
-        // an option here is to just use the system PRNG to pick one at random
+        // `battle.choices` determines what the possible choices are - the simplest way to
+        // choose an option here is to just use the system PRNG to pick one at random.
         //
         // Technically due to Generation I's Transform + Mirror Move/Metronome PP error if the
         // battle contains Pokémon with a combination of Transform, Mirror Move/Metronome, and
@@ -101,6 +97,6 @@ pub fn main() !void {
         else => unreachable,
     };
 
-    const out = std.io.getStdOut().writer();
-    try out.print("Battle {s} after {d} turns\n", .{ msg, battle.turn });
+    var out = std.Io.File.stdout().writer(init.io, &.{});
+    try out.interface.print("Battle {s} after {d} turns\n", .{ msg, battle.turn });
 }
