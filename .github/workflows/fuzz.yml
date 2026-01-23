@@ -19,7 +19,7 @@ jobs:
         options: ['', '-Dshowdown']
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: scheibo/build-zig@main
         with:
           patch-file: zig.patch
@@ -34,7 +34,7 @@ jobs:
           node src/bin/install-pkmn-engine --options="-Dshowdown -Dlog -Dchance -Dcalc"
           npm run integration -- --gen=${{matrix.gen}} --duration=15m --maxFailures=5 --debug=false
         if: ${{ matrix.options != '' }}
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         if: failure()
         with:
           name: logs

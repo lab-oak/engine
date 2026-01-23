@@ -23,9 +23,9 @@ jobs:
             zig: local
     runs-on: ${{matrix.os}}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       # NOTE: we rely on npm postinstall-ed zig for local zig
-      - uses: goto-bus-stop/setup-zig@default
+      - uses: mlugg/setup-zig@v2
         if: ${{ matrix.zig != 'local' }}
         with:
           version: ${{matrix.zig}}
