@@ -88,11 +88,13 @@ class Runner {
         undefined,
         this.debug,
         this.errors,
-      );
+      ).inputLog;
       if (!repeat) return Promise.resolve();
 
       const replayed = replay(this.gen, lines);
-      assert.equal(lines.join('\n'), replayed.join('\n'));
+      // Some battles are problematic to replay due to [from] - only compare
+      // replayed logs if the battle actually ended and wasnt aborted early
+      if (replayed.ended) assert.equal(lines.join('\n'), replayed.inputLog.join('\n'));
       return Promise.resolve();
     } catch (err: unknown) {
       return Promise.reject(err as Error);
@@ -250,7 +252,7 @@ function play(
         control.setPlayer('p2', p2options.spec);
       } else {
         control.makeChoices(adjust(engine.Choice.format(c1)), adjust(engine.Choice.format(c2)));
-        if (gen.num === 1 && problematic(control)) return control.inputLog;
+        if (gen.num === 1 && problematic(control, !!replay)) return control;
       }
 
       const request = partial.showdown.result = toResult(control, p1options.spec.name);
@@ -311,7 +313,7 @@ function play(
     }
     throw err;
   }
-  return control.inputLog;
+  return control;
 }
 
 function replay(gen: Generation, lines: string[]) {
@@ -599,6 +601,9 @@ function fixTeam(gen: Generation, options: sim.AIOptions, moves: Set<ID>) {
 }
 
 const BINDING = ['bind', 'wrap', 'firespin', 'clamp'] as ID[];
+const MULTI_TURN = [
+  'dig', 'fly', 'rage', 'solarbeam', 'skyattack', 'razorwind', 'skullbash', 'petaldance', 'thrash',
+] as ID[];
 
 // Due to Pokémon Showdown having some bugs which are unimplementable by correct
 // engines, we need to get creative... The easiest solution is to simply never
@@ -692,7 +697,7 @@ const METRONOME = [
 //
 // (Technically we can do away with validate above and always attempt to detect
 // problems here, but we once again avoid doing that to minimize complexity)
-function problematic(battle: Battle) {
+function problematic(battle: Battle, replay: boolean) {
   // PP can go negative on Pokémon Showdown due to Mimic
   for (const side of battle.sides) {
     for (const pokemon of side.active) {
@@ -705,7 +710,13 @@ function problematic(battle: Battle) {
       // Metronome calling any move that contains issues is a problem because it
       // bypasses the validation logic above which would otherwise disallow it
       const from = toID((kwArgs as Protocol.KWArgs['|move|']).from);
-      if (from === 'metronome' && METRONOME.includes(toID(args[2]))) return true;
+      const move = toID(args[2]);
+      if (from === 'metronome' && METRONOME.includes(move)) return true;
+      // If we're replaying, any multi-turn move proc-ed via Metronome or Mirror Move
+      // cannot be reversed from the input log
+      if (replay && (from === 'metronome' || from === 'mirrormove') && MULTI_TURN.includes(move)) {
+        return true;
+      }
     } else if (args[0] === '-start') {
       // Pokémon Showdown doesn't properly handle PP deduction if Transform was
       // copied by Mimic
@@ -762,7 +773,7 @@ function fromInputLog(
     const struggle = d === 'struggle';
 
     const data = d === 'recharge' ? 1 : !isNaN(+d) ? +d : moves[player].indexOf(d as ID) + 1;
-    // BUG: a move could be [from] Metronome and wouldn't be possible to reverse
+    // BUG: a move could be [from] Metronome or Mirror Move and wouldn't be possible to reverse
     if (type === 'move' && !data && !struggle) throw new Error(`Invalid choice data: '${d}'`);
 
     const choice = {type, data};
