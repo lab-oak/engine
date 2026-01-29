@@ -20,7 +20,7 @@ pub fn main(init: std.process.Init) !void {
     };
 
     // Use Zig's system PRNG (`pkmn.PSRNG` is another option with a slightly different API)
-    var prng = std.Random.DefaultPrng.init(seed);
+    var prng: std.Random.DefaultPrng = .init(seed);
     var random = prng.random();
     // Preallocate a small buffer for the choice options throughout the battle
     var choices: [pkmn.CHOICES_SIZE]pkmn.Choice = undefined;
@@ -55,15 +55,15 @@ pub fn main(init: std.process.Init) !void {
     // backed by some other `std.Io.Writer` would also work. This example doesn't demonstrate how to
     // use `-Dchance` or `-Dcalc` so we just pass the no-op implementations here
     var buf: [pkmn.LOGS_SIZE]u8 = undefined;
-    var writer = pkmn.protocol.Writer{ .buffer = &buf };
+    var writer: pkmn.protocol.Writer = .{ .buffer = &buf };
     var options = pkmn.battle.options(
         pkmn.protocol.FixedLog{ .writer = &writer },
         pkmn.gen1.chance.NULL,
         pkmn.gen1.calc.NULL,
     );
 
-    var c1 = pkmn.Choice{};
-    var c2 = pkmn.Choice{};
+    var c1: pkmn.Choice = .{};
+    var c2: pkmn.Choice = .{};
 
     var result = try battle.update(c1, c2, &options);
     while (result.type == .None) : (result = try battle.update(c1, c2, &options)) {

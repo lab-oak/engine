@@ -280,14 +280,15 @@ be used when logging is enabled to allow for easily printing e.g. to standard ou
 const std = @import("std");
 const pkmn = @import("pkmn");
 
-var random = std.Random.DefaultPrng.init(seed).random();
+var prng: std.Random.DefaultPrng = .init(seed);
+var random = prng.random();
 var choices: [pkmn.CHOICES_SIZE]pkmn.Choice = undefined;
 
 var battle = ...
 var options = pkmn.battle.options(...);
 
-var c1 = pkmn.Choice{};
-var c2 = pkmn.Choice{};
+var c1: pkmn.Choice = .{};
+var c2: pkmn.Choice = .{};
 
 var result = try battle.update(c1, c2, &options);
 while (result.type == .None) : (result = try battle.update(c1, c2, &options)) {
@@ -360,7 +361,7 @@ The engine is currently expected to be developed over multiple stages:
 | ***3*** | *modern generations*                            |
 
 Currently, most of the foundational work from stage 0 is done:
-  
+
 - [benchmark and integration testing](src/test) infrastructure
 - [documentation](docs) about design, research, methodology, etc
 - definition and implementation of the [protocol](docs/PROTOCOL.md) that's used by the engine
