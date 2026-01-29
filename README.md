@@ -101,7 +101,6 @@ To include `pkmn`, add it as a dependency in your project's
 Package Management
 system](https://ziglang.org/download/0.11.0/release-notes.html#Package-Management):
 
-
 ```zig
 .dependencies = .{
     .pkmn = .{
@@ -120,25 +119,6 @@ error: dependency is missing hash field
             .url = "https://github.com/pkmn/engine/archive/nightly.tar.gz",
                    ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 note: expected .hash = "122056b93b403033cb7d9bed96a02c2eb8cc1275515976167726ada6eb4207e8ef8a",
-```
-
-You must add `build.zig.zon` to the engine package to be able to import it in your `build.zig`:
-
-```zig
-.{
-    .name = .pkmn,
-    .version = "0.1.0-dev",
-    .minimum_zig_version = "0.16.0",
-    .paths = .{
-        "build.zig",
-        "docs",
-        "LICENSE",
-        "README.md",
-        "src/include",
-        "src/lib",
-    },
-    .fingerprint = 0x74a002f44f200a47,
-}
 ```
 
 Note that this hash is **not** going to be the same as the commit hash. After adding the hash to
