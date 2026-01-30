@@ -10446,8 +10446,8 @@ fn Test(comptime rolls: anytype) type {
 
             t.battle.expected = Battle.fixed(rolls, pokemon1, pokemon2);
             t.battle.actual = t.battle.expected;
-            t.writer.expected = std.Io.Writer.Allocating.init(std.testing.allocator);
-            t.writer.actual = std.Io.Writer.Allocating.init(std.testing.allocator);
+            t.writer.expected = .init(std.testing.allocator);
+            t.writer.actual = .init(std.testing.allocator);
             t.log.expected = .{ .writer = &t.writer.expected.writer };
             t.log.actual = .{ .writer = &t.writer.actual.writer };
 

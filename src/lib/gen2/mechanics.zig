@@ -130,11 +130,11 @@ fn start(battle: anytype, options: anytype) !Result {
 
     const p1_slot = findFirstAlive(p1);
     assert(!showdown or p1_slot == 1);
-    if (p1_slot == 0) return if (findFirstAlive(p2) == 0) Result.Tie else Result.Lose;
+    if (p1_slot == 0) return if (findFirstAlive(p2) == 0) .Tie else .Lose;
 
     const p2_slot = findFirstAlive(p2);
     assert(!showdown or p2_slot == 1);
-    if (p2_slot == 0) return Result.Win;
+    if (p2_slot == 0) return .Win;
 
     try switchIn(battle, .P1, p1_slot, .Initial, options);
     try switchIn(battle, .P2, p2_slot, .Initial, options);
@@ -819,13 +819,13 @@ fn checkFaint(
 
     if (player_out and foe_out) {
         try options.log.tie(.{});
-        return Result.Tie;
+        return .Tie;
     } else if (player_out) {
         try options.log.win(.{player.foe()});
-        return if (player == .P1) Result.Lose else Result.Win;
+        return if (player == .P1) .Lose else .Win;
     } else if (foe_out) {
         try options.log.win(.{player});
-        return if (player == .P1) Result.Win else Result.Lose;
+        return if (player == .P1) .Win else .Lose;
     }
 
     const foe_choice: Choice.Type = if (foe_fainted) .Switch else .Pass;
@@ -1195,14 +1195,14 @@ fn endTurn(battle: anytype, options: anytype) @TypeOf(options.log).Error!Result 
 
     if (pkmn.options.mod and battle.turn >= 1000) {
         try options.log.tie(.{});
-        return Result.Tie;
+        return .Tie;
     } else if (battle.turn >= 65535) {
-        return Result.Error;
+        return .Error;
     }
 
     try options.log.turn(.{battle.turn});
 
-    return Result.Default;
+    return .Default;
 }
 
 pub fn buildRage(battle: anytype, player: Player, state: *State, options: anytype) !void {

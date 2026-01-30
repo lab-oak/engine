@@ -950,10 +950,10 @@ pub fn format(
             .OHKO,
             => {},
             .Move => {
-                const source = ID.from(@intCast(a[i]));
+                const source: ID = .from(@intCast(a[i]));
                 printc(" {s}({d})", .{ @tagName(source.player), source.id }, a, b, &i, 1, color);
                 printc(" {s}", .{formatter(gen, .Move, a[i])}, a, b, &i, 1, color);
-                const target = ID.from(@intCast(a[i]));
+                const target: ID = .from(@intCast(a[i]));
                 printc(" {s}({d})", .{ @tagName(target.player), target.id }, a, b, &i, 1, color);
                 const reason: Move = @enumFromInt(a[i]);
                 printc(" {s}", .{@tagName(reason)}, a, b, &i, 1, color);
@@ -962,7 +962,7 @@ pub fn format(
                 }
             },
             .Switch, .Drag => {
-                const id = ID.from(@intCast(a[i]));
+                const id: ID = .from(@intCast(a[i]));
                 printc(" {s}({d})", .{ @tagName(id.player), id.id }, a, b, &i, 1, color);
                 printc(" {s}", .{formatter(gen, .Species, a[i])}, a, b, &i, 1, color);
                 if (@hasDecl(gen, "Gender")) {
@@ -991,7 +991,7 @@ pub fn format(
                 printc(" {s}", .{formatter(gen, .Status, a[i])}, a, b, &i, 1, color);
             },
             .Cant => {
-                const id = ID.from(@intCast(a[i]));
+                const id: ID = .from(@intCast(a[i]));
                 printc(" {s}({d})", .{ @tagName(id.player), id.id }, a, b, &i, 1, color);
                 const reason: Cant = @enumFromInt(a[i]);
                 printc(" {s}", .{@tagName(reason)}, a, b, &i, 1, color);
@@ -1007,7 +1007,7 @@ pub fn format(
             .Resisted,
             .CureTeam,
             => {
-                const id = ID.from(@intCast(a[i]));
+                const id: ID = .from(@intCast(a[i]));
                 printc(" {s}({d})", .{ @tagName(id.player), id.id }, a, b, &i, 1, color);
             },
             .Turn => {
@@ -1021,7 +1021,7 @@ pub fn format(
                 printc(" {s}", .{@tagName(@as(Player, @enumFromInt(a[i])))}, a, b, &i, 1, color);
             },
             .Damage, .Heal => {
-                var id = ID.from(@intCast(a[i]));
+                var id: ID = .from(@intCast(a[i]));
                 printc(" {s}({d})", .{ @tagName(id.player), id.id }, a, b, &i, 1, color);
                 switch (endian) {
                     .big => {
@@ -1042,20 +1042,20 @@ pub fn format(
                     const reason: Damage = @enumFromInt(a[i]);
                     printc(" {s}", .{@tagName(reason)}, a, b, &i, 1, color);
                     if (reason == .RecoilOf) {
-                        id = ID.from(@intCast(a[i]));
+                        id = .from(@intCast(a[i]));
                         printc(" {s}({d})", .{ @tagName(id.player), id.id }, a, b, &i, 1, color);
                     }
                 } else {
                     const reason: Heal = @enumFromInt(a[i]);
                     printc(" {s}", .{@tagName(reason)}, a, b, &i, 1, color);
                     if (reason == .Drain) {
-                        id = ID.from(@intCast(a[i]));
+                        id = .from(@intCast(a[i]));
                         printc(" {s}({d})", .{ @tagName(id.player), id.id }, a, b, &i, 1, color);
                     }
                 }
             },
             .Status => {
-                const id = ID.from(@intCast(a[i]));
+                const id: ID = .from(@intCast(a[i]));
                 printc(" {s}({d})", .{ @tagName(id.player), id.id }, a, b, &i, 1, color);
                 printc(" {s}", .{formatter(gen, .Status, a[i])}, a, b, &i, 1, color);
                 const reason: Status = @enumFromInt(a[i]);
@@ -1065,35 +1065,35 @@ pub fn format(
                 }
             },
             .CureStatus => {
-                const id = ID.from(@intCast(a[i]));
+                const id: ID = .from(@intCast(a[i]));
                 printc(" {s}({d})", .{ @tagName(id.player), id.id }, a, b, &i, 1, color);
                 printc(" {s}", .{formatter(gen, .Status, a[i])}, a, b, &i, 1, color);
                 const reason: CureStatus = @enumFromInt(a[i]);
                 printc(" {s}", .{@tagName(reason)}, a, b, &i, 1, color);
             },
             .Boost => {
-                const id = ID.from(@intCast(a[i]));
+                const id: ID = .from(@intCast(a[i]));
                 printc(" {s}({d})", .{ @tagName(id.player), id.id }, a, b, &i, 1, color);
                 printc(" {s}", .{@tagName(@as(Boost, @enumFromInt(a[i])))}, a, b, &i, 1, color);
                 printc(" {d}", .{a[i]}, a, b, &i, 1, color);
             },
             .Fail => {
-                const id = ID.from(@intCast(a[i]));
+                const id: ID = .from(@intCast(a[i]));
                 printc(" {s}({d})", .{ @tagName(id.player), id.id }, a, b, &i, 1, color);
                 printc(" {s}", .{@tagName(@as(Fail, @enumFromInt(a[i])))}, a, b, &i, 1, color);
             },
             .HitCount, .SetBoost => {
-                const id = ID.from(@intCast(a[i]));
+                const id: ID = .from(@intCast(a[i]));
                 printc(" {s}({d})", .{ @tagName(id.player), id.id }, a, b, &i, 1, color);
                 printc(" {d}", .{a[i]}, a, b, &i, 1, color);
             },
             .Prepare, .SingleMove, .SingleTurn => {
-                const id = ID.from(@intCast(a[i]));
+                const id: ID = .from(@intCast(a[i]));
                 printc(" {s}({d})", .{ @tagName(id.player), id.id }, a, b, &i, 1, color);
                 printc(" {s}", .{formatter(gen, .Move, a[i])}, a, b, &i, 1, color);
             },
             .Activate => {
-                const id = ID.from(@intCast(a[i]));
+                const id: ID = .from(@intCast(a[i]));
                 printc(" {s}({d})", .{ @tagName(id.player), id.id }, a, b, &i, 1, color);
                 const reason: Activate = @enumFromInt(a[i]);
                 printc(" {s}", .{@tagName(reason)}, a, b, &i, 1, color);
@@ -1104,7 +1104,7 @@ pub fn format(
                 }
             },
             .Start => {
-                const id = ID.from(@intCast(a[i]));
+                const id: ID = .from(@intCast(a[i]));
                 printc(" {s}({d})", .{ @tagName(id.player), id.id }, a, b, &i, 1, color);
                 const reason = a[i];
                 printc(" {s}", .{@tagName(@as(Start, @enumFromInt(reason)))}, a, b, &i, 1, color);
@@ -1121,27 +1121,27 @@ pub fn format(
                 }
             },
             .End => {
-                const id = ID.from(@intCast(a[i]));
+                const id: ID = .from(@intCast(a[i]));
                 printc(" {s}({d})", .{ @tagName(id.player), id.id }, a, b, &i, 1, color);
                 printc(" {s}", .{@tagName(@as(End, @enumFromInt(a[i])))}, a, b, &i, 1, color);
             },
             .Immune => {
-                const id = ID.from(@intCast(a[i]));
+                const id: ID = .from(@intCast(a[i]));
                 printc(" {s}({d})", .{ @tagName(id.player), id.id }, a, b, &i, 1, color);
                 printc(" {s}", .{@tagName(@as(Immune, @enumFromInt(a[i])))}, a, b, &i, 1, color);
             },
             .Transform, .CopyBoost => {
-                const source = ID.from(@intCast(a[i]));
+                const source: ID = .from(@intCast(a[i]));
                 printc(" {s}({d})", .{ @tagName(source.player), source.id }, a, b, &i, 1, color);
-                const target = ID.from(@intCast(a[i]));
+                const target: ID = .from(@intCast(a[i]));
                 printc(" {s}({d})", .{ @tagName(target.player), target.id }, a, b, &i, 1, color);
             },
             .Item, .EndItem => {
-                var id = ID.from(@intCast(a[i]));
+                var id: ID = .from(@intCast(a[i]));
                 printc(" {s}({d})", .{ @tagName(id.player), id.id }, a, b, &i, 1, color);
                 printc(" {s}", .{formatter(gen, .Item, a[i])}, a, b, &i, 1, color);
                 if (arg == .Item) {
-                    id = ID.from(@intCast(a[i]));
+                    id = .from(@intCast(a[i]));
                     printc(" {s}({d})", .{ @tagName(id.player), id.id }, a, b, &i, 1, color);
                 } else {
                     const reason: EndItem = @enumFromInt(a[i]);
@@ -1149,7 +1149,7 @@ pub fn format(
                 }
             },
             .SetHP => {
-                const id = ID.from(@intCast(a[i]));
+                const id: ID = .from(@intCast(a[i]));
                 printc(" {s}({d})", .{ @tagName(id.player), id.id }, a, b, &i, 1, color);
                 switch (endian) {
                     .big => {
@@ -1169,18 +1169,18 @@ pub fn format(
                 printc(" {s}", .{@tagName(@as(SetHP, @enumFromInt(a[i])))}, a, b, &i, 1, color);
             },
             .SideStart => {
-                const id = ID.from(@intCast(a[i]));
+                const id: ID = .from(@intCast(a[i]));
                 printc(" {s}({d})", .{ @tagName(id.player), id.id }, a, b, &i, 1, color);
                 printc(" {s}", .{@tagName(@as(Side, @enumFromInt(a[i])))}, a, b, &i, 1, color);
             },
             .SideEnd => {
-                var id = ID.from(@intCast(a[i]));
+                var id: ID = .from(@intCast(a[i]));
                 printc(" {s}({d})", .{ @tagName(id.player), id.id }, a, b, &i, 1, color);
                 const reason: Side = @enumFromInt(a[i]);
                 printc(" {s}", .{@tagName(reason)}, a, b, &i, 1, color);
                 if (reason == .Spikes) {
                     printc(" {s}", .{formatter(gen, .Move, a[i])}, a, b, &i, 1, color);
-                    id = ID.from(@intCast(a[i]));
+                    id = .from(@intCast(a[i]));
                     printc(" {s}({d})", .{ @tagName(id.player), id.id }, a, b, &i, 1, color);
                 }
             },

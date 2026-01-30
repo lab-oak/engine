@@ -194,7 +194,7 @@ pub fn transitions(
 
     const cap = options.cap;
 
-    var seen = std.AutoHashMap(Actions, void).init(allocator);
+    var seen: std.AutoHashMap(Actions, void) = .init(allocator);
     defer seen.deinit();
     var frontier: std.array_list.Aligned(Actions, null) = .empty;
     defer frontier.deinit(allocator);

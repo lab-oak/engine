@@ -84,11 +84,11 @@ fn start(battle: anytype, options: anytype) !Result {
 
     const p1_slot = findFirstAlive(p1);
     assert(!showdown or p1_slot == 1);
-    if (p1_slot == 0) return if (findFirstAlive(p2) == 0) Result.Tie else Result.Lose;
+    if (p1_slot == 0) return if (findFirstAlive(p2) == 0) .Tie else .Lose;
 
     const p2_slot = findFirstAlive(p2);
     assert(!showdown or p2_slot == 1);
-    if (p2_slot == 0) return Result.Win;
+    if (p2_slot == 0) return .Win;
 
     try switchIn(battle, .P1, p1_slot, true, options);
     try switchIn(battle, .P2, p2_slot, true, options);
@@ -167,7 +167,7 @@ fn selectMove(
                 const last = side.active.move(battle.lastMove(player).index);
                 if (last.id == .Metronome) side.last_selected_move = last.id;
                 if (last.id == .MirrorMove) {
-                    if (!pkmn.options.mod) return Result.Error;
+                    if (!pkmn.options.mod) return .Error;
                     side.last_selected_move = last.id;
                 }
             }
@@ -432,7 +432,7 @@ fn executeMove(
             // technically be from this Pokémon because it must be exactly 1 to not desync and
             // every Pokémon must have at least one move
             if (mslot != 1 or side.active.move(mslot).id != side.last_selected_move) {
-                return Result.Error;
+                return .Error;
             } else {
                 auto = true;
             }
@@ -450,7 +450,7 @@ fn executeMove(
         .skip_can => skip_can = true,
         .skip_pp => skip_pp = true,
         .ok => {},
-        .err => return @as(?Result, Result.Error),
+        .err => return .Error,
     }
 
     // Pokémon Showdown incorrectly implements PP deduction when handling the Hyper Beam automatic
@@ -916,7 +916,7 @@ fn doMove(
                 if (showdown) break :damage; // skip adjustDamage / randomizeDamage
             } else if (!calcDamage(battle, player, player.foe(), move, crit, options)) {
                 if (!showdown) try options.chance.commit(player, .err);
-                return @as(?Result, Result.Error);
+                return .Error;
             }
             if (battle.last_damage == 0) {
                 immune = true;
@@ -1248,13 +1248,13 @@ fn specialDamage(battle: anytype, player: Player, move: Move.Data, options: anyt
         .Psywave => power: {
             const max: u8 = @intCast(@as(u16, side.stored().level) * 3 / 2);
             // GLITCH: Psywave infinite glitch loop
-            if (!pkmn.options.mod and max <= 1) return Result.Error;
+            if (!pkmn.options.mod and max <= 1) return .Error;
             break :power try Rolls.psywave(battle, player, max, options);
         },
         else => unreachable,
     };
 
-    if (battle.last_damage == 0) return if (pkmn.options.mod) null else Result.Error;
+    if (battle.last_damage == 0) return if (pkmn.options.mod) null else .Error;
 
     const sub = showdown and foe.active.volatiles.Substitute;
     _ = try applyDamage(battle, player.foe(), player.foe(), .None, options);
@@ -1291,7 +1291,7 @@ fn counterDamage(battle: anytype, player: Player, move: Move.Data, options: anyt
 
     if (!used or !selected) {
         // GLITCH: Counter desync (covered by Desync Clause Mod on Pokémon Showdown)
-        if (!pkmn.options.mod) return Result.Error;
+        if (!pkmn.options.mod) return .Error;
         try options.log.fail(.{ battle.active(player), .None });
         return null;
     }
@@ -1528,13 +1528,13 @@ fn checkFaint(
 
     if (player_out and foe_out) {
         try options.log.tie(.{});
-        return Result.Tie;
+        return .Tie;
     } else if (player_out) {
         try options.log.win(.{player.foe()});
-        return if (player == .P1) Result.Lose else Result.Win;
+        return if (player == .P1) .Lose else .Win;
     } else if (foe_out) {
         try options.log.win(.{player});
-        return if (player == .P1) Result.Win else Result.Lose;
+        return if (player == .P1) .Win else .Lose;
     }
 
     const foe_choice: Choice.Type = if (foe_fainted) .Switch else .Pass;
@@ -1552,7 +1552,7 @@ fn faint(battle: anytype, player: Player, done: bool, cap: bool, options: anytyp
     if (foe_volatiles.Bide) {
         assert(!foe_volatiles.Thrashing and !foe_volatiles.Rage);
         foe_volatiles.state = if (pkmn.options.mod) 0 else foe_volatiles.state & 255;
-        if (foe_volatiles.state != 0) return Result.Error;
+        if (foe_volatiles.state != 0) return .Error;
     }
 
     // Clearing these is not strictly necessary as provided the battle hasn't ended the side that
@@ -1644,19 +1644,19 @@ fn endTurn(battle: anytype, options: anytype) @TypeOf(options.log).Error!Result 
 
     if (pkmn.options.mod and pkmn.options.ebc and checkEBC(battle)) {
         try options.log.tie(.{});
-        return Result.Tie;
+        return .Tie;
     }
 
     if (pkmn.options.mod and battle.turn >= 1000) {
         try options.log.tie(.{});
-        return Result.Tie;
+        return .Tie;
     } else if (battle.turn >= 65535) {
-        return Result.Error;
+        return .Error;
     }
 
     try options.log.turn(.{battle.turn});
 
-    return Result.Default;
+    return .Default;
 }
 
 fn checkEBC(battle: anytype) bool {
@@ -1947,7 +1947,7 @@ pub const Effects = struct {
             return null;
         } else if (err) {
             // GLITCH: Transform + Mirror Move / Metronome PP softlock
-            return Result.Error;
+            return .Error;
         }
 
         volatiles.disable_move =
