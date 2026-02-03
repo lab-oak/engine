@@ -291,9 +291,15 @@ fn dump(seed: u64) !void {
     const name = try std.fmt.bufPrint(&n, "logs/0x{X}.{s}.bin", .{ seed, ext });
 
     const dir = std.Io.Dir.cwd();
-    dir.createDir(io, "logs", .default_dir) catch return;
+    dir.createDir(io, "logs", .default_dir) catch |err| switch (err) {
+        error.PathAlreadyExists => {},
+        else => return err,
+    };
 
-    const file = dir.createFile(io, name, .{}) catch return;
+    const file = dir.createFile(io, name, .{}) catch |err| switch (err) {
+        error.PathAlreadyExists => try dir.openFile(io, name, .{}),
+        else => return err,
+    };
     defer file.close(io);
     var w = file.writer(io, &buf);
     try display(&w.interface, true);
