@@ -3193,8 +3193,8 @@ pub fn choices(battle: anytype, player: Player, request: Choice.Type, out: []Cho
             // switching) but before you are allowed to select a move. Pokémon Showdown instead
             // either disables all other moves in the case of limited or requires you to select a
             // move normally if sleeping/frozen/bound
-            if (!showdown and (limited or foe.active.volatiles.Binding or
-                Status.is(stored.status, .FRZ) or Status.is(stored.status, .SLP)))
+            if (limited or foe.active.volatiles.Binding or
+                Status.is(stored.status, .FRZ) or Status.is(stored.status, .SLP))
             {
                 out[n] = .{ .type = .Move, .data = 0 };
                 n += 1;
@@ -3206,23 +3206,6 @@ pub fn choices(battle: anytype, player: Player, request: Choice.Type, out: []Cho
             // is present in the Pokémon's moveset (which means moves called via Metronome / Mirror
             // Move will not result in forcing the subsequent use unless the user also had the
             // proc-ed move in their moveset) and disabling all other moves
-            if (limited) {
-                assert(showdown);
-                assert(side.last_selected_move != .None);
-                while (slot <= 4) : (slot += 1) {
-                    const m = active.moves[slot - 1];
-                    if (m.id == .None) break;
-                    if (m.id == if (active.volatiles.Bide) .Bide else side.last_selected_move) {
-                        // Pokémon Showdown displays Struggle if limited to Bide but unable to pick
-                        const struggle =
-                            m.id == .Bide and (m.pp == 0 or active.volatiles.disable_move == slot);
-                        const s = if (struggle) 0 else slot;
-                        out[n] = .{ .type = .Move, .data = @intCast(s) };
-                        n += 1;
-                        return n;
-                    }
-                }
-            }
 
             const before = n;
             slot = 1;
